@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – ELIITOZE JEWELZ</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+</head>
+<body>
+
+  <!-- ADMIN HEADER -->
+  <div class="admin-header">
+    <h1>⚙️ ELIITOZE JEWELZ – Admin Panel</h1>
+    <p>Owner Control Panel · GitHub Pages</p>
+  </div>
+
+  <div class="admin-wrapper">
+
+    <!-- ── WHATSAPP SETTING ── -->
+    <div class="admin-card">
+      <h2>📱 WhatsApp Number Setting</h2>
+      <div class="form-group">
+        <label>WhatsApp Number (with country code, no + or spaces)</label>
+        <div class="whatsapp-setting">
+          <input type="tel" id="wa-number" placeholder="e.g. 919876543210" maxlength="15">
+          <button class="whatsapp-save-btn" onclick="saveWhatsApp()">Save Number</button>
+        </div>
+      </div>
+      <div class="admin-note">
+        <strong>📌 Note:</strong> This number is saved in your browser's localStorage.
+        WhatsApp orders from <strong>this browser/device</strong> will use this number.<br><br>
+        For all customers to reach you, update <code>WHATSAPP_NUMBER</code> in <strong>products.js</strong> file in your GitHub repository.
+      </div>
+      <div id="wa-status" style="margin-top:10px;font-size:13px;color:var(--green);font-weight:600;"></div>
+    </div>
+
+    <!-- ── ADD PRODUCT GUIDE ── -->
+    <div class="admin-card">
+      <h2>➕ How to Add a New Product</h2>
+      <p style="font-size:14px;color:#555;line-height:1.8;margin-bottom:16px;">
+        GitHub Pages is a <strong>static website</strong>. Server-side upload possible નથી.<br>
+        Products add કરવા માટે GitHub repository directly edit કરો:
+      </p>
+
+      <div style="background:#f8f8f8;border-radius:10px;padding:16px;margin-bottom:16px;">
+        <div style="font-weight:700;color:var(--gold-dark);margin-bottom:10px;">📋 Step-by-Step Process:</div>
+        <ol style="padding-left:20px;line-height:2;font-size:14px;color:#444;">
+          <li>GitHub repository open કરો</li>
+          <li><code>images/</code> folder માં product photo upload કરો (e.g. <code>product7.jpg</code>)</li>
+          <li><code>videos/</code> folder માં product video upload કરો (e.g. <code>product7.mp4</code>)</li>
+          <li><code>products.js</code> file edit કરો અને નવો product add કરો</li>
+          <li>Commit & Push કરો → website automatically update થશે</li>
+        </ol>
+      </div>
+
+      <div style="font-weight:700;color:var(--gold-dark);margin-bottom:8px;">📝 products.js માં product format:</div>
+      <div class="code-block">{
+  id: 7,
+  name: "Your Product Name",
+  price: 2000,
+  discountPrice: 1799,  // 0 means no discount
+  image: "images/product7.jpg",
+  video: "videos/product7.mp4",
+  qty: 10,
+  description: "Short description here"
+},</div>
+
+      <div class="admin-note" style="margin-top:16px;">
+        <strong>💡 Video Tips:</strong><br>
+        • Video 5-10 seconds રાખો<br>
+        • Upload પહેલા compress કરો (HandBrake app free છે)<br>
+        • File size 5MB થી ઓછી રાખો fast loading માટે<br>
+        • Format: MP4 (H.264) recommend
+      </div>
+    </div>
+
+    <!-- ── PRODUCT GENERATOR ── -->
+    <div class="admin-card">
+      <h2>🛠️ Product Code Generator</h2>
+      <p style="font-size:14px;color:#666;margin-bottom:16px;">Form fill કરો → products.js code generate થશે → copy કરી GitHub repository માં paste કરો</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input type="text" id="gen-name" placeholder="e.g. Gold Ring Set">
+        </div>
+        <div class="form-group">
+          <label>Next Product ID *</label>
+          <input type="number" id="gen-id" placeholder="e.g. 7" min="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Original Price (₹) *</label>
+          <input type="number" id="gen-price" placeholder="e.g. 2500">
+        </div>
+        <div class="form-group">
+          <label>Discount Price (₹) – 0 if no discount</label>
+          <input type="number" id="gen-discount" placeholder="e.g. 1999 or 0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Image filename</label>
+          <input type="text" id="gen-image" placeholder="e.g. product7.jpg">
+        </div>
+        <div class="form-group">
+          <label>Video filename</label>
+          <input type="text" id="gen-video" placeholder="e.g. product7.mp4">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Stock Quantity *</label>
+          <input type="number" id="gen-qty" placeholder="e.g. 10" min="0">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="gen-desc" placeholder="Short description">
+        </div>
+      </div>
+
+      <button class="admin-btn" onclick="generateCode()">⚡ Generate Product Code</button>
+
+      <div id="generated-code" style="display:none;margin-top:16px;">
+        <div style="font-weight:700;color:var(--gold-dark);margin-bottom:8px;">✅ Copy this code and add it inside the <code>products</code> array in <code>products.js</code>:</div>
+        <div class="code-block" id="gen-output"></div>
+        <button class="admin-btn secondary" onclick="copyCode()">📋 Copy Code</button>
+      </div>
+    </div>
+
+    <!-- ── STOCK MANAGER ── -->
+    <div class="admin-card">
+      <h2>📦 Stock Manager</h2>
+      <p style="font-size:14px;color:#666;margin-bottom:16px;">
+        Current products ની qty preview. Actual qty change કરવા <code>products.js</code> edit કરો.
+      </p>
+      <div class="product-list-admin" id="stock-list">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="admin-note">
+        <strong>🔄 Stock Update Process:</strong><br>
+        1. GitHub ખોલો → <code>products.js</code> edit કરો<br>
+        2. Product ની <code>qty</code> value change કરો<br>
+        3. Commit → Website update ✅<br><br>
+        <strong>qty: 0</strong> → "Out of Stock" automatically show થશે
+      </div>
+    </div>
+
+    <!-- ── QUICK GUIDE ── -->
+    <div class="admin-card">
+      <h2>📚 GitHub Repository Structure</h2>
+      <div class="code-block">your-repo/
+├── index.html        ← Shop Page
+├── cart.html         ← Cart Page
+├── admin.html        ← This Admin Page
+├── style.css         ← Design
+├── script.js         ← Logic
+├── products.js       ← ⭐ Product Data (edit this)
+├── images/           ← ⭐ Product Photos upload here
+│   ├── product1.jpg
+│   ├── product2.jpg
+│   └── ...
+└── videos/           ← ⭐ Product Videos upload here
+    ├── product1.mp4
+    ├── product2.mp4
+    └── ...</div>
+
+      <div class="admin-note" style="margin-top:16px;">
+        <strong>🌐 GitHub Pages Setup:</strong><br>
+        Repository Settings → Pages → Source: <strong>main branch / root</strong><br>
+        Website URL: <code>https://yourusername.github.io/your-repo-name/</code>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:20px 0 40px;">
+      <a href="index.html" style="display:inline-block;background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:white;padding:14px 32px;border-radius:30px;font-weight:700;font-size:15px;letter-spacing:0.5px;text-transform:uppercase;">
+        💍 View Shop
+      </a>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="site-toast"></div>
+
+  <script src="products.js"></script>
+  <script src="script.js"></script>
+  <script>
+    // Load saved WhatsApp number
+    document.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('eliitoze_wa_number') || (typeof WHATSAPP_NUMBER !== 'undefined' ? WHATSAPP_NUMBER : '');
+      if (saved) document.getElementById('wa-number').value = saved;
+      renderStockList();
+    });
+
+    function saveWhatsApp() {
+      const num = document.getElementById('wa-number').value.trim().replace(/\D/g, '');
+      if (!num || num.length < 10) { showToast('Valid number enter કરો'); return; }
+      localStorage.setItem('eliitoze_wa_number', num);
+      document.getElementById('wa-status').textContent = '✅ Number saved! (this browser)';
+      showToast('WhatsApp number saved!', 'gold');
+    }
+
+    function generateCode() {
+      const name = document.getElementById('gen-name').value.trim();
+      const id = document.getElementById('gen-id').value;
+      const price = document.getElementById('gen-price').value;
+      const discount = document.getElementById('gen-discount').value || '0';
+      const image = document.getElementById('gen-image').value.trim() || 'images/product.jpg';
+      const video = document.getElementById('gen-video').value.trim() || 'videos/product.mp4';
+      const qty = document.getElementById('gen-qty').value || '0';
+      const desc = document.getElementById('gen-desc').value.trim();
+
+      if (!name || !id || !price) { showToast('Name, ID and Price required!'); return; }
+
+      const code = `  {
+    id: ${id},
+    name: "${name}",
+    price: ${price},
+    discountPrice: ${discount},
+    image: "images/${image.replace('images/','')}",
+    video: "videos/${video.replace('videos/','')}",
+    qty: ${qty},
+    description: "${desc}"
+  },`;
+
+      document.getElementById('gen-output').textContent = code;
+      document.getElementById('generated-code').style.display = 'block';
+    }
+
+    function copyCode() {
+      const code = document.getElementById('gen-output').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('Code copied! 📋', 'gold');
+      }).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Code copied! 📋', 'gold');
+      });
+    }
+
+    function renderStockList() {
+      const list = document.getElementById('stock-list');
+      if (!list || !window.products) return;
+      list.innerHTML = products.map(p => `
+        <div class="admin-product-row">
+          <img src="${p.image}" alt="${p.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2254%22 height=%2254%22><rect fill=%22%23FDF8EE%22 width=%2254%22 height=%2254%22/><text x=%2227%22 y=%2238%22 text-anchor=%22middle%22 font-size=%2228%22>💍</text></svg>'">
+          <div class="p-name">${p.name}</div>
+          <div style="font-size:13px;color:#888;">ID: ${p.id}</div>
+          <div style="font-size:13px;font-weight:700;color:${p.qty > 0 ? 'var(--green)' : 'var(--red)'};">
+            ${p.qty > 0 ? `Stock: ${p.qty}` : '❌ Out of Stock'}
+          </div>
+        </div>`).join('');
+    }
+  </script>
+</body>
+</html>
