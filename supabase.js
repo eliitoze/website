@@ -1,21 +1,20 @@
 // ════════════════════════════════════════════════
-//  SUPABASE CONFIG — eliitoze.netlify.app
-//  Replace these values with your own Supabase project credentials
+//  SUPABASE CONFIG
 // ════════════════════════════════════════════════
 
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';        // e.g. https://xxxx.supabase.co
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://gyocbotkhoymkjbegkqz.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_qTbtpHsIErfEty4dDEZrog_Hxw6cUmv';
 
-// ── Supabase client (using CDN, no npm needed) ──
-const supabase = window.supabase.createClient(https://gyocbotkhoymkjbegkqz.supabase.co, sb_publishable_qTbtpHsIErfEty4dDEZrog_Hxw6cUmv);
+// ── Supabase client ──
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── Storage bucket name ──
 const MEDIA_BUCKET = 'product-media';
 
-// ── WhatsApp number (with country code, no + or spaces) ──
-const WA_NUMBER = '919227096270'; // Replace with your WhatsApp number
+// ── WhatsApp number ──
+const WA_NUMBER = '919227096270';
 
-// ── Export for use in other files ──
+// ── Export for other files ──
 window.sb = supabase;
 window.MEDIA_BUCKET = MEDIA_BUCKET;
 window.WA_NUMBER = WA_NUMBER;
