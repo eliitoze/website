@@ -132,11 +132,12 @@ function render() {
 
   // WhatsApp
   document.getElementById('wa-btn').addEventListener('click', () => {
+    const baseUrl = window.location.origin + window.location.pathname.replace('cart.html', '');
     const lines = getCart().map((item, idx) =>
-      `${idx + 1}. ${item.name} – ${formatPrice(item.display_price)}`
+      `${idx + 1}. ${item.name} – ${formatPrice(item.display_price)}\n   🔗 ${baseUrl}index.html?product=${item.id}`
     ).join('\n');
     const msg = encodeURIComponent(
-      `Hello,\nI want to order these items:\n\n${lines}\n\nTotal: ${formatPrice(total)}`
+      `Hello Eliitoze Jewelz,\nI want to order these items:\n\n${lines}\n\nTotal: ${formatPrice(total)}`
     );
     window.open(`https://wa.me/${window.WA_NUMBER}?text=${msg}`, '_blank');
   });

@@ -40,6 +40,16 @@
   <span class="section-count" id="product-count">Loading...</span>
 </div>
 
+<!-- ── CATEGORY FILTERS ── -->
+<div class="filter-wrap" id="filter-wrap" style="display:none">
+  <div class="cat-tabs">
+    <button class="cat-tab active" data-cat="all">All</button>
+    <button class="cat-tab" data-cat="Imitation Jewellery">Imitation Jewellery</button>
+    <button class="cat-tab" data-cat="Sterling Silver 925">Sterling Silver 925</button>
+  </div>
+  <div class="subcat-pills" id="subcat-pills"></div>
+</div>
+
 <!-- Skeleton loaders -->
 <div class="loading-grid" id="skeleton-grid">
   <div class="skeleton"></div>
@@ -62,6 +72,12 @@
   const grid = document.getElementById('products-grid');
   const skeleton = document.getElementById('skeleton-grid');
   const countEl = document.getElementById('product-count');
+  const filterWrap = document.getElementById('filter-wrap');
+  const subcatPills = document.getElementById('subcat-pills');
+
+  let allProducts = [];
+  let activeCat = 'all';
+  let activeSubcat = 'all';
 
   // Fetch products
   const { data: products, error } = await window.sb
@@ -82,57 +98,121 @@
     return;
   }
 
-  countEl.textContent = products.length + ' item' + (products.length !== 1 ? 's' : '');
+  allProducts = products;
+  filterWrap.style.display = 'block';
 
-  products.forEach(p => {
-    const hasDiscount = p.discount_price && p.discount_price < p.price;
-    const displayPrice = hasDiscount ? p.discount_price : p.price;
-    const inStock = p.qty > 0;
+  // ── Build subcategory pills based on active category
+  function buildSubcatPills() {
+    const relevant = activeCat === 'all'
+      ? allProducts
+      : allProducts.filter(p => p.category === activeCat);
 
-    const card = document.createElement('div');
-    card.className = 'product-card';
-    card.innerHTML = `
-      <div class="product-media">
-        <img src="${p.image_url || 'https://via.placeholder.com/400x400/1a1a1a/888?text=ELIITOZE'}" 
-             alt="${p.name}" loading="lazy" />
-        ${p.video_url ? `<video src="${p.video_url}" muted loop playsinline></video>` : ''}
-        ${hasDiscount ? `<span class="product-badge">SALE</span>` : ''}
-        ${!inStock ? `<span class="out-badge">Out of Stock</span>` : ''}
-      </div>
-      <div class="product-info">
-        <div class="product-name">${p.name}</div>
-        <div class="product-prices">
-          ${hasDiscount ? `<span class="price-original">${formatPrice(p.price)}</span>` : ''}
-          <span class="${hasDiscount ? 'price-sale' : 'price-only'}">${formatPrice(displayPrice)}</span>
-        </div>
-        <button class="btn-add" ${!inStock ? 'disabled' : ''} data-id="${p.id}">
-          ${inStock ? 'Add to Cart' : 'Out of Stock'}
-        </button>
-      </div>`;
+    const subcats = [...new Set(relevant.map(p => p.subcategory).filter(Boolean))];
 
-    // Video hover
-    if (p.video_url) {
-      const video = card.querySelector('video');
-      card.addEventListener('mouseenter', () => video.play().catch(() => {}));
-      card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
+    if (subcats.length === 0) {
+      subcatPills.innerHTML = '';
+      return;
     }
 
-    // Add to cart
-    card.querySelector('.btn-add').addEventListener('click', (e) => {
-      e.stopPropagation();
-      const btn = e.currentTarget;
-      addToCart({ id: p.id, name: p.name, image_url: p.image_url, display_price: displayPrice });
-      btn.textContent = '✓ Added';
-      btn.classList.add('added');
-      setTimeout(() => {
-        btn.textContent = 'Add to Cart';
-        btn.classList.remove('added');
-      }, 1500);
-      showToast(`${p.name} added to cart`);
-    });
+    subcatPills.innerHTML = `
+      <button class="subcat-pill ${activeSubcat === 'all' ? 'active' : ''}" data-sub="all">All</button>
+      ${subcats.map(s => `
+        <button class="subcat-pill ${activeSubcat === s ? 'active' : ''}" data-sub="${s}">${s}</button>
+      `).join('')}`;
 
-    grid.appendChild(card);
+    subcatPills.querySelectorAll('.subcat-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeSubcat = btn.dataset.sub;
+        subcatPills.querySelectorAll('.subcat-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderProducts();
+      });
+    });
+  }
+
+  // ── Render product cards
+  function renderProducts() {
+    let filtered = allProducts;
+    if (activeCat !== 'all') filtered = filtered.filter(p => p.category === activeCat);
+    if (activeSubcat !== 'all') filtered = filtered.filter(p => p.subcategory === activeSubcat);
+
+    countEl.textContent = filtered.length + ' item' + (filtered.length !== 1 ? 's' : '');
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="icon">💎</div>
+          <p>No products in this category yet</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = '';
+    filtered.forEach(p => {
+      const hasDiscount = p.discount_price && p.discount_price < p.price;
+      const displayPrice = hasDiscount ? p.discount_price : p.price;
+      const inStock = p.qty > 0;
+
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      card.innerHTML = `
+        <div class="product-media">
+          <img src="${p.image_url || 'https://via.placeholder.com/400x400/1a1a1a/888?text=ELIITOZE'}" 
+               alt="${p.name}" loading="lazy" />
+          ${p.video_url ? `<video src="${p.video_url}" muted loop playsinline></video>` : ''}
+          ${hasDiscount ? `<span class="product-badge">SALE</span>` : ''}
+          ${!inStock ? `<span class="out-badge">Out of Stock</span>` : ''}
+          ${p.category ? `<span class="cat-badge">${p.category === 'Sterling Silver 925' ? '925' : 'Imitation'}</span>` : ''}
+        </div>
+        <div class="product-info">
+          ${p.subcategory ? `<div class="product-subcat">${p.subcategory}</div>` : ''}
+          <div class="product-name">${p.name}</div>
+          <div class="product-prices">
+            ${hasDiscount ? `<span class="price-original">${formatPrice(p.price)}</span>` : ''}
+            <span class="${hasDiscount ? 'price-sale' : 'price-only'}">${formatPrice(displayPrice)}</span>
+          </div>
+          <button class="btn-add" ${!inStock ? 'disabled' : ''} data-id="${p.id}">
+            ${inStock ? 'Add to Cart' : 'Out of Stock'}
+          </button>
+        </div>`;
+
+      if (p.video_url) {
+        const video = card.querySelector('video');
+        card.addEventListener('mouseenter', () => video.play().catch(() => {}));
+        card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
+      }
+
+      card.querySelector('.btn-add').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const btn = e.currentTarget;
+        addToCart({ id: p.id, name: p.name, image_url: p.image_url, display_price: displayPrice });
+        btn.textContent = '✓ Added';
+        btn.classList.add('added');
+        setTimeout(() => {
+          btn.textContent = 'Add to Cart';
+          btn.classList.remove('added');
+        }, 1500);
+        showToast(`${p.name} added to cart`);
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  // ── Category tab click
+  document.querySelectorAll('.cat-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeCat = btn.dataset.cat;
+      activeSubcat = 'all';
+      document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      buildSubcatPills();
+      renderProducts();
+    });
   });
+
+  buildSubcatPills();
+  renderProducts();
 })();
 </script>
 </body>

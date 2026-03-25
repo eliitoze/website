@@ -75,6 +75,30 @@
           <input class="form-input" type="number" id="p-qty" placeholder="10" min="0" />
         </div>
 
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category *</label>
+            <select class="form-input" id="p-category" onchange="updateSubcatOptions()">
+              <option value="Imitation Jewellery">Imitation Jewellery</option>
+              <option value="Sterling Silver 925">Sterling Silver 925</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sub Category</label>
+            <select class="form-input" id="p-subcategory">
+              <option value="">— Select —</option>
+              <option value="Necklace Set">Necklace Set</option>
+              <option value="Bracelet">Bracelet</option>
+              <option value="Earrings">Earrings</option>
+              <option value="Ring">Ring</option>
+              <option value="Pendant">Pendant</option>
+              <option value="Bangle">Bangle</option>
+              <option value="Anklet">Anklet</option>
+              <option value="Maang Tikka">Maang Tikka</option>
+            </select>
+          </div>
+        </div>
+
         <!-- Image Upload -->
         <div class="form-group">
           <label class="form-label">Product Image *</label>
@@ -194,6 +218,8 @@ async function addProduct() {
   const price   = parseFloat(document.getElementById('p-price').value);
   const dprice  = parseFloat(document.getElementById('p-dprice').value) || null;
   const qty     = parseInt(document.getElementById('p-qty').value);
+  const category = document.getElementById('p-category').value;
+  const subcategory = document.getElementById('p-subcategory').value || null;
   const imgFile = document.getElementById('p-image').files[0];
   const vidFile = document.getElementById('p-video').files[0];
   const statusEl = document.getElementById('add-status');
@@ -230,7 +256,8 @@ async function addProduct() {
 
   statusEl.textContent = 'Saving to database...';
   const { error } = await sb.from('products').insert([{
-    name, price, discount_price: dprice, qty, image_url: imageUrl, video_url: videoUrl
+    name, price, discount_price: dprice, qty, image_url: imageUrl, video_url: videoUrl,
+    category, subcategory
   }]);
 
   if (error) {
@@ -246,6 +273,8 @@ async function addProduct() {
   // Reset form
   setTimeout(() => {
     ['p-name','p-price','p-dprice','p-qty'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('p-category').value = 'Imitation Jewellery';
+    document.getElementById('p-subcategory').value = '';
     document.getElementById('p-image').value = '';
     document.getElementById('p-video').value = '';
     document.getElementById('img-preview').style.display = 'none';
