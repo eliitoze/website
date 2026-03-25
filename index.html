@@ -213,6 +213,40 @@
 
   buildSubcatPills();
   renderProducts();
+
+  // ── WhatsApp link: ?product=ID hoy to highlight karo
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetId = urlParams.get('product');
+  if (targetId) {
+    setTimeout(() => {
+      // Product ID match karo
+      const targetProduct = allProducts.find(p => String(p.id) === String(targetId));
+      if (targetProduct) {
+        // Category filter set karo jethhi product visible rahe
+        if (targetProduct.category) {
+          activeCat = targetProduct.category;
+          activeSubcat = 'all';
+          document.querySelectorAll('.cat-tab').forEach(b => {
+            b.classList.toggle('active', b.dataset.cat === activeCat);
+          });
+          buildSubcatPills();
+          renderProducts();
+        }
+        // Card find karo ane scroll + highlight karo
+        setTimeout(() => {
+          const cards = grid.querySelectorAll('.product-card');
+          cards.forEach(card => {
+            const btn = card.querySelector('.btn-add');
+            if (btn && btn.dataset.id === String(targetId)) {
+              card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              card.classList.add('product-highlight');
+              setTimeout(() => card.classList.remove('product-highlight'), 3000);
+            }
+          });
+        }, 100);
+      }
+    }, 300);
+  }
 })();
 </script>
 </body>

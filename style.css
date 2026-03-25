@@ -858,3 +858,15 @@ footer a { color: var(--gold-dark); text-decoration: none; }
   opacity: 0.7;
   margin-bottom: 4px;
 }
+
+/* ── WhatsApp Product Highlight ── */
+@keyframes highlightPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(212,175,55,0.7); }
+  50%  { box-shadow: 0 0 0 12px rgba(212,175,55,0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(212,175,55,0); }
+}
+
+.product-highlight {
+  animation: highlightPulse 1s ease 3;
+  border: 1px solid var(--gold) !important;
+}
