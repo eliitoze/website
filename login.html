@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — ELIITOZE JEWELZ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">ELIITOZE</div>
+    <div class="login-sub">Admin Panel · Secure Access</div>
+
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-input" type="text" id="username" placeholder="Enter username" autocomplete="username" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="password" placeholder="Enter password" autocomplete="current-password" />
+    </div>
+
+    <button class="btn-login" id="login-btn">Enter</button>
+    <div class="login-error" id="login-error"></div>
+
+    <div style="text-align:center; margin-top:24px;">
+      <a href="index.html" style="font-size:10px; letter-spacing:2px; color:var(--text-dim); text-decoration:none; text-transform:uppercase;">← Back to Shop</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const ADMIN_USER = '281981';
+const ADMIN_PASS = '152207';
+
+function doLogin() {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value.trim();
+  const err = document.getElementById('login-error');
+
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    sessionStorage.setItem('eliitoze_admin', '1');
+    window.location.href = 'admin.html';
+  } else {
+    err.textContent = 'Invalid credentials. Redirecting to shop...';
+    setTimeout(() => window.location.href = 'index.html', 1800);
+  }
+}
+
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>
