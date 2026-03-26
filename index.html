@@ -6,10 +6,14 @@
   <title>ELIITOZE JEWELZ — Fine Jewellery</title>
   <meta name="description" content="Discover premium handcrafted jewellery by Eliitoze Jewelz, Rajkot." />
   <link rel="stylesheet" href="style.css" />
-  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<!-- ── NOTICE BANNER ── -->
+<div id="notice-banner" style="display:none;padding:10px 20px;text-align:center;font-size:12px;letter-spacing:1.5px;color:#fff;font-family:inherit;">
+  <span id="notice-banner-text"></span>
+</div>
 
 <!-- ── HEADER ── -->
 <header class="site-header">
@@ -68,6 +72,22 @@
 <script src="supabase.js"></script>
 <script src="script.js"></script>
 <script>
+// ── Load Notice Banner
+(async () => {
+  try {
+    const { data } = await window.sb.from('site_settings').select('value').eq('key', 'notice_banner').single();
+    if (!data) return;
+    const s = JSON.parse(data.value);
+    if (s.active && s.text) {
+      const banner = document.getElementById('notice-banner');
+      banner.style.background = s.color || '#B8860B';
+      banner.style.display = 'block';
+      document.getElementById('notice-banner-text').textContent = s.text;
+    }
+  } catch(e) {}
+})();
+
+// ── Products
 (async () => {
   const grid = document.getElementById('products-grid');
   const skeleton = document.getElementById('skeleton-grid');
@@ -79,21 +99,14 @@
   let activeCat = 'all';
   let activeSubcat = 'all';
 
-  // Fetch products
   const { data: products, error } = await window.sb
-    .from('products')
-    .select('*')
-    .order('id', { ascending: false });
+    .from('products').select('*').order('id', { ascending: false });
 
   skeleton.style.display = 'none';
   grid.style.display = 'grid';
 
   if (error || !products || products.length === 0) {
-    grid.innerHTML = `
-      <div class="empty-state" style="grid-column:1/-1">
-        <div class="icon">💎</div>
-        <p>Collection coming soon</p>
-      </div>`;
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">💎</div><p>Collection coming soon</p></div>';
     countEl.textContent = '0 items';
     return;
   }
@@ -101,25 +114,12 @@
   allProducts = products;
   filterWrap.style.display = 'block';
 
-  // ── Build subcategory pills based on active category
   function buildSubcatPills() {
-    const relevant = activeCat === 'all'
-      ? allProducts
-      : allProducts.filter(p => p.category === activeCat);
-
+    const relevant = activeCat === 'all' ? allProducts : allProducts.filter(p => p.category === activeCat);
     const subcats = [...new Set(relevant.map(p => p.subcategory).filter(Boolean))];
-
-    if (subcats.length === 0) {
-      subcatPills.innerHTML = '';
-      return;
-    }
-
-    subcatPills.innerHTML = `
-      <button class="subcat-pill ${activeSubcat === 'all' ? 'active' : ''}" data-sub="all">All</button>
-      ${subcats.map(s => `
-        <button class="subcat-pill ${activeSubcat === s ? 'active' : ''}" data-sub="${s}">${s}</button>
-      `).join('')}`;
-
+    if (subcats.length === 0) { subcatPills.innerHTML = ''; return; }
+    subcatPills.innerHTML = '<button class="subcat-pill ' + (activeSubcat === 'all' ? 'active' : '') + '" data-sub="all">All</button>' +
+      subcats.map(s => '<button class="subcat-pill ' + (activeSubcat === s ? 'active' : '') + '" data-sub="' + s + '">' + s + '</button>').join('');
     subcatPills.querySelectorAll('.subcat-pill').forEach(btn => {
       btn.addEventListener('click', () => {
         activeSubcat = btn.dataset.sub;
@@ -130,76 +130,60 @@
     });
   }
 
-  // ── Render product cards
   function renderProducts() {
     let filtered = allProducts;
     if (activeCat !== 'all') filtered = filtered.filter(p => p.category === activeCat);
     if (activeSubcat !== 'all') filtered = filtered.filter(p => p.subcategory === activeSubcat);
-
     countEl.textContent = filtered.length + ' item' + (filtered.length !== 1 ? 's' : '');
-
     if (filtered.length === 0) {
-      grid.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1">
-          <div class="icon">💎</div>
-          <p>No products in this category yet</p>
-        </div>`;
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">💎</div><p>No products in this category yet</p></div>';
       return;
     }
-
     grid.innerHTML = '';
     filtered.forEach(p => {
       const hasDiscount = p.discount_price && p.discount_price < p.price;
       const displayPrice = hasDiscount ? p.discount_price : p.price;
       const inStock = p.qty > 0;
-
       const card = document.createElement('div');
       card.className = 'product-card';
-      card.innerHTML = `
-        <div class="product-media">
-          <img src="${p.image_url || 'https://via.placeholder.com/400x400/1a1a1a/888?text=ELIITOZE'}" 
-               alt="${p.name}" loading="lazy" />
-          ${p.video_url ? `<video src="${p.video_url}" muted loop playsinline></video>` : ''}
-          ${hasDiscount ? `<span class="product-badge">SALE</span>` : ''}
-          ${!inStock ? `<span class="out-badge">Out of Stock</span>` : ''}
-          ${p.category ? `<span class="cat-badge">${p.category === 'Sterling Silver 925' ? '925' : 'Imitation'}</span>` : ''}
-        </div>
-        <div class="product-info">
-          ${p.subcategory ? `<div class="product-subcat">${p.subcategory}</div>` : ''}
-          <div class="product-name">${p.name}</div>
-          <div class="product-prices">
-            ${hasDiscount ? `<span class="price-original">${formatPrice(p.price)}</span>` : ''}
-            <span class="${hasDiscount ? 'price-sale' : 'price-only'}">${formatPrice(displayPrice)}</span>
-          </div>
-          <button class="btn-add" ${!inStock ? 'disabled' : ''} data-id="${p.id}">
-            ${inStock ? 'Add to Cart' : 'Out of Stock'}
-          </button>
-        </div>`;
+      card.innerHTML =
+        '<div class="product-media">' +
+          '<img src="' + (p.image_url || 'https://via.placeholder.com/400x400/1a1a1a/888?text=ELIITOZE') + '" alt="' + p.name + '" loading="lazy" />' +
+          (p.video_url ? '<video src="' + p.video_url + '" muted loop playsinline></video>' : '') +
+          (hasDiscount ? '<span class="product-badge">SALE</span>' : '') +
+          (!inStock ? '<span class="out-badge">Out of Stock</span>' : '') +
+          (p.category ? '<span class="cat-badge">' + (p.category === 'Sterling Silver 925' ? '925' : 'Imitation') + '</span>' : '') +
+        '</div>' +
+        '<div class="product-info">' +
+          (p.subcategory ? '<div class="product-subcat">' + p.subcategory + '</div>' : '') +
+          '<div class="product-name">' + p.name + '</div>' +
+          '<div class="product-prices">' +
+            (hasDiscount ? '<span class="price-original">' + formatPrice(p.price) + '</span>' : '') +
+            '<span class="' + (hasDiscount ? 'price-sale' : 'price-only') + '">' + formatPrice(displayPrice) + '</span>' +
+          '</div>' +
+          '<button class="btn-add" ' + (!inStock ? 'disabled' : '') + ' data-id="' + p.id + '">' +
+            (inStock ? 'Add to Cart' : 'Out of Stock') +
+          '</button>' +
+        '</div>';
 
       if (p.video_url) {
         const video = card.querySelector('video');
         card.addEventListener('mouseenter', () => video.play().catch(() => {}));
         card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
       }
-
-      card.querySelector('.btn-add').addEventListener('click', (e) => {
+      card.querySelector('.btn-add').addEventListener('click', e => {
         e.stopPropagation();
         const btn = e.currentTarget;
         addToCart({ id: p.id, name: p.name, image_url: p.image_url, display_price: displayPrice });
         btn.textContent = '✓ Added';
         btn.classList.add('added');
-        setTimeout(() => {
-          btn.textContent = 'Add to Cart';
-          btn.classList.remove('added');
-        }, 1500);
-        showToast(`${p.name} added to cart`);
+        setTimeout(() => { btn.textContent = 'Add to Cart'; btn.classList.remove('added'); }, 1500);
+        showToast(p.name + ' added to cart');
       });
-
       grid.appendChild(card);
     });
   }
 
-  // ── Category tab click
   document.querySelectorAll('.cat-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       activeCat = btn.dataset.cat;
@@ -214,37 +198,29 @@
   buildSubcatPills();
   renderProducts();
 
-  // ── WhatsApp link: ?product=ID hoy to highlight karo
+  // ── WhatsApp link: ?product=ID
   const urlParams = new URLSearchParams(window.location.search);
   const targetId = urlParams.get('product');
   if (targetId) {
     setTimeout(() => {
-      // Product ID match karo
       const targetProduct = allProducts.find(p => String(p.id) === String(targetId));
-      if (targetProduct) {
-        // Category filter set karo jethhi product visible rahe
-        if (targetProduct.category) {
-          activeCat = targetProduct.category;
-          activeSubcat = 'all';
-          document.querySelectorAll('.cat-tab').forEach(b => {
-            b.classList.toggle('active', b.dataset.cat === activeCat);
-          });
-          buildSubcatPills();
-          renderProducts();
-        }
-        // Card find karo ane scroll + highlight karo
-        setTimeout(() => {
-          const cards = grid.querySelectorAll('.product-card');
-          cards.forEach(card => {
-            const btn = card.querySelector('.btn-add');
-            if (btn && btn.dataset.id === String(targetId)) {
-              card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              card.classList.add('product-highlight');
-              setTimeout(() => card.classList.remove('product-highlight'), 3000);
-            }
-          });
-        }, 100);
+      if (targetProduct && targetProduct.category) {
+        activeCat = targetProduct.category;
+        activeSubcat = 'all';
+        document.querySelectorAll('.cat-tab').forEach(b => b.classList.toggle('active', b.dataset.cat === activeCat));
+        buildSubcatPills();
+        renderProducts();
       }
+      setTimeout(() => {
+        grid.querySelectorAll('.product-card').forEach(card => {
+          const btn = card.querySelector('.btn-add');
+          if (btn && btn.dataset.id === String(targetId)) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.classList.add('product-highlight');
+            setTimeout(() => card.classList.remove('product-highlight'), 3000);
+          }
+        });
+      }, 100);
     }, 300);
   }
 })();

@@ -32,6 +32,7 @@
     <button class="sidebar-link active" onclick="showPanel('dashboard', this)">📊 Dashboard</button>
     <button class="sidebar-link" onclick="showPanel('add-product', this)">➕ Add Product</button>
     <button class="sidebar-link" onclick="showPanel('manage', this)">📦 Manage Products</button>
+    <button class="sidebar-link" onclick="showPanel('notice', this)">📢 Notice Banner</button>
   </aside>
 
   <!-- Main -->
@@ -78,7 +79,7 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Category *</label>
-            <select class="form-input" id="p-category" onchange="updateSubcatOptions()">
+            <select class="form-input" id="p-category">
               <option value="Imitation Jewellery">Imitation Jewellery</option>
               <option value="Sterling Silver 925">Sterling Silver 925</option>
             </select>
@@ -99,35 +100,76 @@
           </div>
         </div>
 
-        <!-- Image Upload -->
+        <!-- Bulk Image Upload -->
         <div class="form-group">
-          <label class="form-label">Product Image *</label>
-          <div class="upload-area" id="img-upload-area">
-            <input type="file" id="p-image" accept="image/*" />
+          <label class="form-label">Product Images *
+            <span style="color:var(--gold);font-size:10px;letter-spacing:1px;font-weight:normal;"> — Multiple select karo = drek image mate alag product banase</span>
+          </label>
+          <div class="upload-area" id="img-upload-area" style="cursor:pointer;" onclick="document.getElementById('p-image').click()">
+            <input type="file" id="p-image" accept="image/*" multiple style="display:none" />
             <div class="upload-icon">🖼️</div>
-            <div class="upload-label">Click to upload image</div>
-            <div class="upload-sub">JPG, PNG, WEBP — max 5MB</div>
-            <img class="preview-img" id="img-preview" />
+            <div class="upload-label">Click to select images</div>
+            <div class="upload-sub">Multiple images select karo — drek mate alag product banase</div>
           </div>
-          <div class="progress-bar" id="img-progress"><div class="progress-fill" id="img-fill"></div></div>
+          <div id="bulk-preview" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;"></div>
           <div class="status-msg" id="img-status"></div>
         </div>
 
         <!-- Video Upload -->
         <div class="form-group">
-          <label class="form-label">Product Video (Optional)</label>
+          <label class="form-label">Product Video (Optional)
+            <span style="color:var(--text-muted);font-size:10px;font-weight:normal;"> — Badha products ne same video lagse</span>
+          </label>
           <div class="upload-area" id="vid-upload-area">
             <input type="file" id="p-video" accept="video/*" />
             <div class="upload-icon">🎬</div>
             <div class="upload-label">Click to upload video</div>
-            <div class="upload-sub">MP4, MOV — recommended &lt;20MB (compress if larger)</div>
+            <div class="upload-sub">MP4, MOV — recommended &lt;20MB</div>
           </div>
           <div class="progress-bar" id="vid-progress"><div class="progress-fill" id="vid-fill"></div></div>
           <div class="status-msg" id="vid-status"></div>
         </div>
 
-        <button class="btn-submit" id="add-btn" onclick="addProduct()">Add Product</button>
+        <button class="btn-submit" id="add-btn" onclick="addProduct()">Add Product(s)</button>
         <div class="status-msg" id="add-status" style="margin-top:12px;font-size:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Notice Banner -->
+    <div class="admin-panel" id="panel-notice">
+      <div class="panel-title">Notice Banner</div>
+      <div class="admin-form">
+        <div class="form-group">
+          <label class="form-label">Banner Status</label>
+          <div style="display:flex;align-items:center;gap:16px;margin-top:8px;">
+            <label class="toggle-wrap">
+              <input type="checkbox" id="notice-active" onchange="toggleNoticePreview()" />
+              <span class="toggle-slider"></span>
+            </label>
+            <span id="notice-status-label" style="font-size:11px;letter-spacing:2px;color:var(--text-muted);">OFF</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Banner Message *</label>
+          <input class="form-input" type="text" id="notice-text" placeholder="e.g. 🎉 20% extra discount on all orders above ₹2000!" oninput="toggleNoticePreview()" />
+          <div style="font-size:10px;color:var(--text-muted);margin-top:6px;letter-spacing:1px;">Emoji pan use kari shakay chho ✨</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Banner Color</label>
+          <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+            <button class="color-chip active" data-color="#B8860B" style="background:#B8860B;" onclick="selectColor(this)"></button>
+            <button class="color-chip" data-color="#8B0000" style="background:#8B0000;" onclick="selectColor(this)"></button>
+            <button class="color-chip" data-color="#1a472a" style="background:#1a472a;" onclick="selectColor(this)"></button>
+            <button class="color-chip" data-color="#1a1a2e" style="background:#1a1a2e;" onclick="selectColor(this)"></button>
+            <button class="color-chip" data-color="#c0392b" style="background:#c0392b;" onclick="selectColor(this)"></button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preview</label>
+          <div id="notice-preview" style="padding:10px 20px;text-align:center;font-size:12px;letter-spacing:1.5px;color:#fff;display:none;margin-top:8px;"></div>
+        </div>
+        <button class="btn-submit" onclick="saveNotice()">Save & Publish</button>
+        <div class="status-msg" id="notice-save-status" style="margin-top:12px;font-size:12px;"></div>
       </div>
     </div>
 
@@ -159,6 +201,7 @@ function showPanel(name, btn) {
   btn.classList.add('active');
   if (name === 'manage') loadManageTable();
   if (name === 'dashboard') loadStats();
+  if (name === 'notice') loadNoticeSettings();
 }
 
 async function loadStats() {
@@ -171,166 +214,205 @@ async function loadStats() {
 }
 loadStats();
 
-// ── Image preview
+// ── Bulk image preview
 document.getElementById('p-image').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const prev = document.getElementById('img-preview');
-  prev.src = URL.createObjectURL(file);
-  prev.style.display = 'block';
+  const files = Array.from(e.target.files);
+  const preview = document.getElementById('bulk-preview');
+  preview.innerHTML = '';
+  files.forEach((file, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'text-align:center;';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    img.style.cssText = 'width:80px;height:80px;object-fit:cover;border:1px solid var(--border);display:block;';
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:9px;color:var(--text-muted);letter-spacing:1px;margin-top:4px;';
+    lbl.textContent = '#' + (i + 1);
+    wrap.appendChild(img);
+    wrap.appendChild(lbl);
+    preview.appendChild(wrap);
+  });
 });
 
-// ── Upload file to Supabase Storage
-async function uploadFile(file, folder, progressBar, progressFill, statusEl) {
-  progressBar.style.display = 'block';
-  statusEl.textContent = 'Uploading...';
+// ── Upload single file
+async function uploadFile(file, folder, statusEl) {
+  if (statusEl) statusEl.textContent = 'Uploading ' + file.name + '...';
   const ext = file.name.split('.').pop();
-  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  // Simulate progress (Supabase JS v2 doesn't have upload progress natively)
-  let pct = 0;
-  const timer = setInterval(() => {
-    pct = Math.min(pct + 10, 85);
-    progressFill.style.width = pct + '%';
-  }, 200);
-
-  const { data, error } = await sb.storage.from(BUCKET).upload(path, file, {
-    cacheControl: '3600',
-    upsert: false
-  });
-
-  clearInterval(timer);
-  progressFill.style.width = '100%';
-
+  const path = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { cacheControl: '3600', upsert: false });
   if (error) {
-    statusEl.textContent = '❌ Upload failed: ' + error.message;
-    progressBar.style.display = 'none';
+    if (statusEl) statusEl.textContent = '❌ Upload failed: ' + error.message;
     return null;
   }
-
   const { data: urlData } = sb.storage.from(BUCKET).getPublicUrl(path);
-  statusEl.textContent = '✓ Uploaded';
+  if (statusEl) statusEl.textContent = '✓ Uploaded';
   return urlData.publicUrl;
 }
 
+// ── Add Product(s)
 async function addProduct() {
-  const name    = document.getElementById('p-name').value.trim();
-  const price   = parseFloat(document.getElementById('p-price').value);
-  const dprice  = parseFloat(document.getElementById('p-dprice').value) || null;
-  const qty     = parseInt(document.getElementById('p-qty').value);
-  const category = document.getElementById('p-category').value;
+  const name       = document.getElementById('p-name').value.trim();
+  const price      = parseFloat(document.getElementById('p-price').value);
+  const dprice     = parseFloat(document.getElementById('p-dprice').value) || null;
+  const qty        = parseInt(document.getElementById('p-qty').value);
+  const category   = document.getElementById('p-category').value;
   const subcategory = document.getElementById('p-subcategory').value || null;
-  const imgFile = document.getElementById('p-image').files[0];
-  const vidFile = document.getElementById('p-video').files[0];
-  const statusEl = document.getElementById('add-status');
-  const btn = document.getElementById('add-btn');
+  const imgFiles   = Array.from(document.getElementById('p-image').files);
+  const vidFile    = document.getElementById('p-video').files[0];
+  const statusEl   = document.getElementById('add-status');
+  const btn        = document.getElementById('add-btn');
 
-  if (!name || isNaN(price) || isNaN(qty) || !imgFile) {
-    statusEl.textContent = '⚠️ Name, Price, Qty and Image are required.';
+  if (!name || isNaN(price) || isNaN(qty) || imgFiles.length === 0) {
+    statusEl.textContent = '⚠️ Name, Price, Qty and at least one Image required.';
     statusEl.style.color = '#E05050';
     return;
   }
 
   btn.disabled = true;
   statusEl.style.color = 'var(--text-muted)';
-  statusEl.textContent = 'Uploading image...';
 
-  const imageUrl = await uploadFile(
-    imgFile, 'images',
-    document.getElementById('img-progress'),
-    document.getElementById('img-fill'),
-    document.getElementById('img-status')
-  );
-  if (!imageUrl) { btn.disabled = false; return; }
-
+  // Upload video once
   let videoUrl = null;
   if (vidFile) {
     statusEl.textContent = 'Uploading video...';
-    videoUrl = await uploadFile(
-      vidFile, 'videos',
-      document.getElementById('vid-progress'),
-      document.getElementById('vid-fill'),
-      document.getElementById('vid-status')
-    );
+    videoUrl = await uploadFile(vidFile, 'videos', document.getElementById('vid-status'));
   }
 
-  statusEl.textContent = 'Saving to database...';
-  const { error } = await sb.from('products').insert([{
-    name, price, discount_price: dprice, qty, image_url: imageUrl, video_url: videoUrl,
-    category, subcategory
-  }]);
+  // Upload each image → separate product
+  let successCount = 0;
+  for (let i = 0; i < imgFiles.length; i++) {
+    statusEl.textContent = 'Uploading image ' + (i + 1) + ' of ' + imgFiles.length + '...';
+    const imageUrl = await uploadFile(imgFiles[i], 'images', document.getElementById('img-status'));
+    if (!imageUrl) continue;
 
-  if (error) {
-    statusEl.textContent = '❌ Error: ' + error.message;
+    const { error } = await sb.from('products').insert([{
+      name, price, discount_price: dprice, qty,
+      image_url: imageUrl, video_url: videoUrl,
+      category, subcategory
+    }]);
+    if (!error) successCount++;
+  }
+
+  if (successCount === imgFiles.length) {
+    statusEl.textContent = '✅ ' + successCount + ' product(s) added successfully!';
+    statusEl.style.color = 'var(--green)';
+  } else {
+    statusEl.textContent = '⚠️ ' + successCount + '/' + imgFiles.length + ' products added.';
     statusEl.style.color = '#E05050';
-    btn.disabled = false;
-    return;
   }
 
-  statusEl.textContent = '✅ Product added successfully!';
-  statusEl.style.color = 'var(--green)';
-
-  // Reset form
   setTimeout(() => {
     ['p-name','p-price','p-dprice','p-qty'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('p-category').value = 'Imitation Jewellery';
     document.getElementById('p-subcategory').value = '';
     document.getElementById('p-image').value = '';
     document.getElementById('p-video').value = '';
-    document.getElementById('img-preview').style.display = 'none';
+    document.getElementById('bulk-preview').innerHTML = '';
     document.getElementById('img-status').textContent = '';
     document.getElementById('vid-status').textContent = '';
-    document.getElementById('img-progress').style.display = 'none';
     document.getElementById('vid-progress').style.display = 'none';
     statusEl.textContent = '';
     btn.disabled = false;
-  }, 2000);
+  }, 2500);
 
   loadStats();
 }
 
-async function loadManageTable() {
-  const wrap = document.getElementById('manage-table-wrap');
-  wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Loading...</p>';
+// ── NOTICE BANNER
+let selectedColor = '#B8860B';
 
-  const { data, error } = await sb.from('products').select('*').order('id', { ascending: false });
-  if (error || !data || data.length === 0) {
-    wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No products found. Add some first!</p>';
+function selectColor(btn) {
+  document.querySelectorAll('.color-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedColor = btn.dataset.color;
+  toggleNoticePreview();
+}
+
+function toggleNoticePreview() {
+  const active = document.getElementById('notice-active').checked;
+  const text = document.getElementById('notice-text').value.trim();
+  const preview = document.getElementById('notice-preview');
+  const label = document.getElementById('notice-status-label');
+  label.textContent = active ? 'ON' : 'OFF';
+  label.style.color = active ? 'var(--gold)' : 'var(--text-muted)';
+  if (text) {
+    preview.style.display = 'block';
+    preview.style.background = selectedColor;
+    preview.textContent = text;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+async function saveNotice() {
+  const active = document.getElementById('notice-active').checked;
+  const text = document.getElementById('notice-text').value.trim();
+  const statusEl = document.getElementById('notice-save-status');
+
+  if (active && !text) {
+    statusEl.textContent = '⚠️ Banner ON chhe pan message khali chhe.';
+    statusEl.style.color = '#E05050';
     return;
   }
 
+  const { error } = await sb.from('site_settings').upsert([{
+    key: 'notice_banner',
+    value: JSON.stringify({ active, text, color: selectedColor })
+  }], { onConflict: 'key' });
+
+  if (error) {
+    statusEl.textContent = '❌ Save failed: ' + error.message;
+    statusEl.style.color = '#E05050';
+    return;
+  }
+
+  statusEl.textContent = active ? '✅ Banner live thayu!' : '✅ Banner band thayu.';
+  statusEl.style.color = 'var(--green)';
+  setTimeout(() => statusEl.textContent = '', 3000);
+}
+
+async function loadNoticeSettings() {
+  const { data } = await sb.from('site_settings').select('value').eq('key', 'notice_banner').single();
+  if (!data) return;
+  try {
+    const s = JSON.parse(data.value);
+    document.getElementById('notice-active').checked = s.active;
+    document.getElementById('notice-text').value = s.text || '';
+    if (s.color) {
+      selectedColor = s.color;
+      document.querySelectorAll('.color-chip').forEach(b => {
+        b.classList.toggle('active', b.dataset.color === s.color);
+      });
+    }
+    toggleNoticePreview();
+  } catch(e) {}
+}
+
+// ── Manage Table
+async function loadManageTable() {
+  const wrap = document.getElementById('manage-table-wrap');
+  wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Loading...</p>';
+  const { data, error } = await sb.from('products').select('*').order('id', { ascending: false });
+  if (error || !data || data.length === 0) {
+    wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No products found.</p>';
+    return;
+  }
   const rows = data.map(p => `
     <tr>
       <td><img src="${p.image_url || ''}" alt="" /></td>
       <td>${p.name}</td>
       <td>₹${p.price}</td>
       <td>${p.discount_price ? '₹' + p.discount_price : '—'}</td>
-      <td>
-        <input class="qty-edit" type="number" value="${p.qty}" min="0" id="qty-${p.id}" />
-      </td>
-      <td>
-        <span class="badge-stock ${p.qty > 0 ? 'badge-in' : 'badge-out'}">
-          ${p.qty > 0 ? 'In Stock' : 'Out'}
-        </span>
-      </td>
+      <td><input class="qty-edit" type="number" value="${p.qty}" min="0" id="qty-${p.id}" /></td>
+      <td><span class="badge-stock ${p.qty > 0 ? 'badge-in' : 'badge-out'}">${p.qty > 0 ? 'In Stock' : 'Out'}</span></td>
       <td>
         <button class="btn-update" onclick="updateQty(${p.id})">Update</button>
         <button class="btn-delete" onclick="deleteProduct(${p.id}, '${p.name}')">✕</button>
       </td>
     </tr>`).join('');
-
-  wrap.innerHTML = `
-    <div style="overflow-x:auto">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Image</th><th>Name</th><th>Price</th><th>Discount</th>
-            <th>Qty</th><th>Status</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
+  wrap.innerHTML = `<div style="overflow-x:auto"><table class="admin-table">
+    <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Discount</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
 }
 
 async function updateQty(id) {
@@ -339,16 +421,14 @@ async function updateQty(id) {
   const { error } = await sb.from('products').update({ qty }).eq('id', id);
   if (error) return alert('Error: ' + error.message);
   alert('Quantity updated!');
-  loadManageTable();
-  loadStats();
+  loadManageTable(); loadStats();
 }
 
 async function deleteProduct(id, name) {
-  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
   const { error } = await sb.from('products').delete().eq('id', id);
   if (error) return alert('Error: ' + error.message);
-  loadManageTable();
-  loadStats();
+  loadManageTable(); loadStats();
 }
 </script>
 </body>
