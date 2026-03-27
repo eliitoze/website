@@ -112,7 +112,7 @@ function renderProducts() {
             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22300%22><rect fill=%22%23FDF8EE%22 width=%22300%22 height=%22300%22/><text x=%22150%22 y=%22160%22 text-anchor=%22middle%22 font-size=%2260%22>💍</text></svg>'"
           >
 
-          <!-- Video: hidden initially, auto-plays inline after 1s -->
+          <!-- Video: hidden initially -->
           ${hasVideo ? `
           <video
             class="product-video"
@@ -121,16 +121,20 @@ function renderProducts() {
             loop
             playsinline
             preload="none"
-            style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;transition:opacity 0.4s ease;"
+            style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;"
           ></video>` : ''}
 
-          <!-- Subtle play hint shown on photo -->
+          <!-- PLAY button: bottom right, visible on photo -->
           ${hasVideo ? `
-          <div class="play-hint" style="transition:opacity 0.4s ease;">
-            <div class="play-circle">
-              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </div>
-          </div>` : ''}
+          <button class="play-btn" onclick="handlePlayBtn(event, this)">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            PLAY
+          </button>
+          <!-- PHOTO button: shown when video plays -->
+          <button class="photo-btn" onclick="handlePhotoBtn(event, this)">
+            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-1 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            PHOTO
+          </button>` : ''}
 
           ${outOfStock ? '<div class="out-of-stock-badge">Out of Stock</div>' : ''}
           ${pct > 0 && !outOfStock ? `<div class="discount-badge">${pct}% OFF</div>` : ''}
@@ -150,99 +154,49 @@ function renderProducts() {
   setupAutoVideo();
 }
 
-// ── Auto Video: Intersection Observer + Tap Toggle ──
-// Default: Video plays after 1s when card is visible
-// Tap: toggles between photo and video
-const videoTimers = new Map();
-// true = video mode (default), false = photo mode (user tapped)
-const userShowingPhoto = new Map();
+// ── Video Play/Photo Button Handlers ──
+function handlePlayBtn(e, btn) {
+  e.stopPropagation();
+  const media = btn.closest('.product-media');
+  const video = media.querySelector('.product-video');
+  const photo = media.querySelector('.product-photo');
+  const photoBtn = media.querySelector('.photo-btn');
 
-function playVideo(card) {
-  const video = card.querySelector('.product-video');
-  const photo = card.querySelector('.product-photo');
-  const hint  = card.querySelector('.play-hint');
-  if (!video) return;
-  video.muted = true;
+  // Video play karo
   video.style.display = 'block';
-  const p = video.play();
-  if (p !== undefined) p.catch(() => {});
+  video.muted = true;
+  video.play().catch(() => {});
   photo.style.opacity = '0';
-  if (hint) hint.style.opacity = '0';
+
+  // Buttons swap karo
+  btn.style.display = 'none';
+  photoBtn.style.display = 'flex';
 }
 
-function showPhoto(card) {
-  const video = card.querySelector('.product-video');
-  const photo = card.querySelector('.product-photo');
-  const hint  = card.querySelector('.play-hint');
-  if (!video) return;
+function handlePhotoBtn(e, btn) {
+  e.stopPropagation();
+  const media = btn.closest('.product-media');
+  const video = media.querySelector('.product-video');
+  const photo = media.querySelector('.product-photo');
+  const playBtn = media.querySelector('.play-btn');
+
+  // Video band karo
   video.pause();
   video.currentTime = 0;
   video.style.display = 'none';
   photo.style.opacity = '1';
-  if (hint) hint.style.opacity = '1';
+
+  // Buttons swap karo
+  btn.style.display = 'none';
+  playBtn.style.display = 'flex';
 }
 
 function setupAutoVideo() {
-  const cards = document.querySelectorAll('.product-card');
-  if (!cards.length) return;
-
-  // Metadata preload upfront
-  cards.forEach(card => {
-    const video = card.querySelector('.product-video');
-    if (video) { video.preload = 'metadata'; video.load(); }
-  });
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const card  = entry.target;
-      const video = card.querySelector('.product-video');
-      if (!video) return;
-
-      if (entry.isIntersecting) {
-        // Card visible thay → 1s pachhi video play (unless user manually photo par chhe)
-        const timer = setTimeout(() => {
-          if (!userShowingPhoto.get(card)) {
-            playVideo(card);
-          }
-        }, 1000);
-        videoTimers.set(card, timer);
-
-      } else {
-        // Card screen thi bahar → fully reset karo
-        clearTimeout(videoTimers.get(card));
-        videoTimers.delete(card);
-        userShowingPhoto.delete(card); // next vaar default video mode
-        showPhoto(card);
-      }
-    });
-  }, {
-    threshold: 0.5
-  });
-
-  cards.forEach(card => {
-    observer.observe(card);
-
-    // Tap toggle
-    const media = card.querySelector('.product-media');
-    if (!media) return;
-    media.addEventListener('click', (e) => {
-      if (e.target.closest('.add-to-cart-btn')) return;
-      const video = card.querySelector('.product-video');
-      if (!video) return;
-
-      const isVideoVisible = video.style.display !== 'none';
-      if (isVideoVisible) {
-        // Video chhe → Photo dikhav
-        clearTimeout(videoTimers.get(card));
-        videoTimers.delete(card);
-        userShowingPhoto.set(card, true);
-        showPhoto(card);
-      } else {
-        // Photo chhe → Video play karo
-        userShowingPhoto.set(card, false);
-        playVideo(card);
-      }
-    });
+  // Hve IntersectionObserver autoplay nathi - buttons thi j control
+  // Bas preload metadata karo
+  document.querySelectorAll('.product-video').forEach(v => {
+    v.preload = 'metadata';
+    v.load();
   });
 }
 
