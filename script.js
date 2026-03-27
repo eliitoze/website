@@ -150,23 +150,37 @@ function renderProducts() {
   setupAutoVideo();
 }
 
-// ── Auto Video: Intersection Observer ──
+// ── Auto Video: Intersection Observer + Tap Toggle ──
+// Default: Video plays after 1s when card is visible
+// Tap: toggles between photo and video
 const videoTimers = new Map();
+// true = video mode (default), false = photo mode (user tapped)
+const userShowingPhoto = new Map();
 
-// Mobile browsers autoplay block kare chhe jyare user e page touch na karyu hoy.
-// Scroll/touch thi unlock thay chhe.
-let userHasInteracted = false;
-function unlockAutoplay() {
-  if (userHasInteracted) return;
-  userHasInteracted = true;
-  document.querySelectorAll('.product-video').forEach(v => {
-    v.preload = 'auto';
-    v.load();
-  });
+function playVideo(card) {
+  const video = card.querySelector('.product-video');
+  const photo = card.querySelector('.product-photo');
+  const hint  = card.querySelector('.play-hint');
+  if (!video) return;
+  video.muted = true;
+  video.style.display = 'block';
+  const p = video.play();
+  if (p !== undefined) p.catch(() => {});
+  photo.style.opacity = '0';
+  if (hint) hint.style.opacity = '0';
 }
-document.addEventListener('touchstart', unlockAutoplay, { once: true });
-document.addEventListener('click', unlockAutoplay, { once: true });
-document.addEventListener('scroll', unlockAutoplay, { once: true, passive: true });
+
+function showPhoto(card) {
+  const video = card.querySelector('.product-video');
+  const photo = card.querySelector('.product-photo');
+  const hint  = card.querySelector('.play-hint');
+  if (!video) return;
+  video.pause();
+  video.currentTime = 0;
+  video.style.display = 'none';
+  photo.style.opacity = '1';
+  if (hint) hint.style.opacity = '1';
+}
 
 function setupAutoVideo() {
   const cards = document.querySelectorAll('.product-card');
@@ -182,43 +196,54 @@ function setupAutoVideo() {
     entries.forEach(entry => {
       const card  = entry.target;
       const video = card.querySelector('.product-video');
-      const photo = card.querySelector('.product-photo');
-      const hint  = card.querySelector('.play-hint');
       if (!video) return;
 
       if (entry.isIntersecting) {
+        // Card visible thay → 1s pachhi video play (unless user manually photo par chhe)
         const timer = setTimeout(() => {
-          photo.style.opacity = '0';
-          if (hint) hint.style.opacity = '0';
-          video.style.display = 'block';
-          video.muted = true; // muted hoy to hi mobile autoplay allow kare chhe
-          const p = video.play();
-          if (p !== undefined) {
-            p.catch(() => {
-              // Autoplay blocked - photo wapas dikhav
-              video.style.display = 'none';
-              photo.style.opacity = '1';
-              if (hint) hint.style.opacity = '1';
-            });
+          if (!userShowingPhoto.get(card)) {
+            playVideo(card);
           }
         }, 1000);
         videoTimers.set(card, timer);
 
       } else {
+        // Card screen thi bahar → fully reset karo
         clearTimeout(videoTimers.get(card));
         videoTimers.delete(card);
-        video.pause();
-        video.currentTime = 0;
-        video.style.display = 'none';
-        photo.style.opacity = '1';
-        if (hint) hint.style.opacity = '1';
+        userShowingPhoto.delete(card); // next vaar default video mode
+        showPhoto(card);
       }
     });
   }, {
     threshold: 0.5
   });
 
-  cards.forEach(card => observer.observe(card));
+  cards.forEach(card => {
+    observer.observe(card);
+
+    // Tap toggle
+    const media = card.querySelector('.product-media');
+    if (!media) return;
+    media.addEventListener('click', (e) => {
+      if (e.target.closest('.add-to-cart-btn')) return;
+      const video = card.querySelector('.product-video');
+      if (!video) return;
+
+      const isVideoVisible = video.style.display !== 'none';
+      if (isVideoVisible) {
+        // Video chhe → Photo dikhav
+        clearTimeout(videoTimers.get(card));
+        videoTimers.delete(card);
+        userShowingPhoto.set(card, true);
+        showPhoto(card);
+      } else {
+        // Photo chhe → Video play karo
+        userShowingPhoto.set(card, false);
+        playVideo(card);
+      }
+    });
+  });
 }
 
 // ── Cart Page Logic ──
