@@ -150,99 +150,75 @@ function renderProducts() {
   setupAutoVideo();
 }
 
-// ── Auto Video: Intersection Observer + Tap Toggle ──
+// ── Auto Video: Intersection Observer ──
 const videoTimers = new Map();
-// Track which cards are currently showing video
-const videoPlaying = new Map();
 
-function showVideo(card) {
-  const video = card.querySelector('.product-video');
-  const photo = card.querySelector('.product-photo');
-  const hint  = card.querySelector('.play-hint');
-  if (!video) return;
-  photo.style.opacity = '0';
-  if (hint) hint.style.opacity = '0';
-  video.style.display = 'block';
-  video.play().catch(() => {});
-  videoPlaying.set(card, true);
+// Mobile browsers autoplay block kare chhe jyare user e page touch na karyu hoy.
+// Scroll/touch thi unlock thay chhe.
+let userHasInteracted = false;
+function unlockAutoplay() {
+  if (userHasInteracted) return;
+  userHasInteracted = true;
+  document.querySelectorAll('.product-video').forEach(v => {
+    v.preload = 'auto';
+    v.load();
+  });
 }
-
-function showPhoto(card) {
-  const video = card.querySelector('.product-video');
-  const photo = card.querySelector('.product-photo');
-  const hint  = card.querySelector('.play-hint');
-  if (!video) return;
-  video.pause();
-  video.currentTime = 0;
-  video.style.display = 'none';
-  photo.style.opacity = '1';
-  if (hint) hint.style.opacity = '1';
-  videoPlaying.set(card, false);
-}
+document.addEventListener('touchstart', unlockAutoplay, { once: true });
+document.addEventListener('click', unlockAutoplay, { once: true });
+document.addEventListener('scroll', unlockAutoplay, { once: true, passive: true });
 
 function setupAutoVideo() {
   const cards = document.querySelectorAll('.product-card');
   if (!cards.length) return;
 
+  // Metadata preload upfront
+  cards.forEach(card => {
+    const video = card.querySelector('.product-video');
+    if (video) { video.preload = 'metadata'; video.load(); }
+  });
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const card  = entry.target;
       const video = card.querySelector('.product-video');
+      const photo = card.querySelector('.product-photo');
+      const hint  = card.querySelector('.play-hint');
       if (!video) return;
 
       if (entry.isIntersecting) {
-        // Card screen par aavi → 1 second pachhi video play karo (only if user hasn't manually toggled to photo)
         const timer = setTimeout(() => {
-          // Jો user e manually photo par nathi rakhyu to auto-play karo
-          if (videoPlaying.get(card) !== false) {
-            showVideo(card);
+          photo.style.opacity = '0';
+          if (hint) hint.style.opacity = '0';
+          video.style.display = 'block';
+          video.muted = true; // muted hoy to hi mobile autoplay allow kare chhe
+          const p = video.play();
+          if (p !== undefined) {
+            p.catch(() => {
+              // Autoplay blocked - photo wapas dikhav
+              video.style.display = 'none';
+              photo.style.opacity = '1';
+              if (hint) hint.style.opacity = '1';
+            });
           }
         }, 1000);
         videoTimers.set(card, timer);
 
       } else {
-        // Card screen par thi gai → fully reset + clear user toggle state
         clearTimeout(videoTimers.get(card));
         videoTimers.delete(card);
-        videoPlaying.delete(card); // reset toggle state when card leaves screen
-        showPhoto(card);
+        video.pause();
+        video.currentTime = 0;
+        video.style.display = 'none';
+        photo.style.opacity = '1';
+        if (hint) hint.style.opacity = '1';
       }
     });
   }, {
-    threshold: 0.5  // 50% card visible thay tyare trigger
+    threshold: 0.5
   });
 
-  cards.forEach(card => {
-    observer.observe(card);
-
-    // ── Tap Toggle: media area par tap karo ──
-    const media = card.querySelector('.product-media');
-    if (!media) return;
-
-    media.addEventListener('click', (e) => {
-      // Add to cart button par click thay to ignore karvo
-      if (e.target.closest('.add-to-cart-btn')) return;
-
-      const video = card.querySelector('.product-video');
-      if (!video) return;
-
-      const isVideoVisible = video.style.display !== 'none';
-
-      if (isVideoVisible) {
-        // Video playing chhe → Photo dikhav
-        clearTimeout(videoTimers.get(card)); // pending timer cancel
-        videoTimers.delete(card);
-        showPhoto(card);
-        videoPlaying.set(card, false); // user manually photo par gayo
-      } else {
-        // Photo dikhay chhe → Video play karo
-        clearTimeout(videoTimers.get(card));
-        videoTimers.delete(card);
-        showVideo(card);
-        videoPlaying.set(card, true); // user manually video par gayo
-      }
-    });
-  });
+  cards.forEach(card => observer.observe(card));
 }
 
 // ── Cart Page Logic ──
