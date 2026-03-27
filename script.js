@@ -150,8 +150,35 @@ function renderProducts() {
   setupAutoVideo();
 }
 
-// ── Auto Video: Intersection Observer ──
+// ── Auto Video: Intersection Observer + Tap Toggle ──
 const videoTimers = new Map();
+// Track which cards are currently showing video
+const videoPlaying = new Map();
+
+function showVideo(card) {
+  const video = card.querySelector('.product-video');
+  const photo = card.querySelector('.product-photo');
+  const hint  = card.querySelector('.play-hint');
+  if (!video) return;
+  photo.style.opacity = '0';
+  if (hint) hint.style.opacity = '0';
+  video.style.display = 'block';
+  video.play().catch(() => {});
+  videoPlaying.set(card, true);
+}
+
+function showPhoto(card) {
+  const video = card.querySelector('.product-video');
+  const photo = card.querySelector('.product-photo');
+  const hint  = card.querySelector('.play-hint');
+  if (!video) return;
+  video.pause();
+  video.currentTime = 0;
+  video.style.display = 'none';
+  photo.style.opacity = '1';
+  if (hint) hint.style.opacity = '1';
+  videoPlaying.set(card, false);
+}
 
 function setupAutoVideo() {
   const cards = document.querySelectorAll('.product-card');
@@ -161,36 +188,61 @@ function setupAutoVideo() {
     entries.forEach(entry => {
       const card  = entry.target;
       const video = card.querySelector('.product-video');
-      const photo = card.querySelector('.product-photo');
-      const hint  = card.querySelector('.play-hint');
       if (!video) return;
 
       if (entry.isIntersecting) {
-        // Card screen par aavi → 1 second pachhi video play karo
+        // Card screen par aavi → 1 second pachhi video play karo (only if user hasn't manually toggled to photo)
         const timer = setTimeout(() => {
-          photo.style.opacity = '0';
-          if (hint) hint.style.opacity = '0';
-          video.style.display = 'block';
-          video.play().catch(() => {});
+          // Jો user e manually photo par nathi rakhyu to auto-play karo
+          if (videoPlaying.get(card) !== false) {
+            showVideo(card);
+          }
         }, 1000);
         videoTimers.set(card, timer);
 
       } else {
-        // Card screen par thi gai → reset
+        // Card screen par thi gai → fully reset + clear user toggle state
         clearTimeout(videoTimers.get(card));
         videoTimers.delete(card);
-        video.pause();
-        video.currentTime = 0;
-        video.style.display = 'none';
-        photo.style.opacity = '1';
-        if (hint) hint.style.opacity = '1';
+        videoPlaying.delete(card); // reset toggle state when card leaves screen
+        showPhoto(card);
       }
     });
   }, {
     threshold: 0.5  // 50% card visible thay tyare trigger
   });
 
-  cards.forEach(card => observer.observe(card));
+  cards.forEach(card => {
+    observer.observe(card);
+
+    // ── Tap Toggle: media area par tap karo ──
+    const media = card.querySelector('.product-media');
+    if (!media) return;
+
+    media.addEventListener('click', (e) => {
+      // Add to cart button par click thay to ignore karvo
+      if (e.target.closest('.add-to-cart-btn')) return;
+
+      const video = card.querySelector('.product-video');
+      if (!video) return;
+
+      const isVideoVisible = video.style.display !== 'none';
+
+      if (isVideoVisible) {
+        // Video playing chhe → Photo dikhav
+        clearTimeout(videoTimers.get(card)); // pending timer cancel
+        videoTimers.delete(card);
+        showPhoto(card);
+        videoPlaying.set(card, false); // user manually photo par gayo
+      } else {
+        // Photo dikhay chhe → Video play karo
+        clearTimeout(videoTimers.get(card));
+        videoTimers.delete(card);
+        showVideo(card);
+        videoPlaying.set(card, true); // user manually video par gayo
+      }
+    });
+  });
 }
 
 // ── Cart Page Logic ──
