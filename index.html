@@ -6,6 +6,12 @@
   <title>ELIITOZE JEWELZ — Fine Jewellery</title>
   <meta name="description" content="Discover premium handcrafted jewellery by Eliitoze Jewelz, Rajkot." />
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#C9A84C" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Eliitoze Jewelz" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -50,7 +56,20 @@
   </div>
 </section>
 
-<!-- ── PRODUCTS ── -->
+<!-- ── PWA INSTALL BANNER ── -->
+<div id="pwa-install-bar" style="display:none;">
+  <div class="pwa-install-inner">
+    <div class="pwa-install-left">
+      <img src="icon-192.png" class="pwa-icon" alt="Eliitoze Jewelz" />
+      <div class="pwa-install-text">
+        <span class="pwa-install-title">Eliitoze Jewelz</span>
+        <span class="pwa-install-sub">Install App — Home Screen પર ઉમેરો</span>
+      </div>
+    </div>
+    <button class="pwa-install-btn" id="pwa-install-btn">⬇ Install</button>
+    <button class="pwa-dismiss-btn" id="pwa-dismiss-btn">✕</button>
+  </div>
+</div>
 <div class="section-header">
   <h2 class="section-title">Our Collection</h2>
   <div class="section-line"></div>
@@ -267,6 +286,46 @@
     }, 300);
   }
 })();
+</script>
+<script>
+// ── Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
+// ── PWA Install Prompt
+let deferredPrompt = null;
+const installBar = document.getElementById('pwa-install-bar');
+const installBtn = document.getElementById('pwa-install-btn');
+const dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!localStorage.getItem('pwa-dismissed')) {
+    installBar.style.display = 'block';
+  }
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBar.style.display = 'none';
+});
+
+dismissBtn.addEventListener('click', () => {
+  installBar.style.display = 'none';
+  localStorage.setItem('pwa-dismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+  installBar.style.display = 'none';
+  deferredPrompt = null;
+});
 </script>
 </body>
 </html>
