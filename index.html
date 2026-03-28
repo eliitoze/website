@@ -30,10 +30,23 @@
 <!-- ── HERO ── -->
 <section class="hero">
   <div class="hero-inner">
-    <div class="hero-eyebrow">Eliitoze Collection</div>
-    <h1>Fine <em>Jewellery</em></h1>
+    <div class="hero-eyebrow">Est. Rajkot · Gujarat</div>
+    <h1 class="hero-brand">ELIITOZE JEWELZ</h1>
+    <div class="hero-premium">Premium Jewellery</div>
     <div class="hero-line"></div>
     <div class="hero-sub">Crafted with Precision · Worn with Pride</div>
+    <div class="hero-category-btns">
+      <a href="#" class="hero-cat-btn silver" id="btn-silver" data-cat="Sterling Silver 925">
+        <span class="hero-cat-icon">✦</span>
+        <span class="hero-cat-label">925 Silver Jewellery</span>
+        <span class="hero-cat-sub">Click to Explore</span>
+      </a>
+      <a href="#" class="hero-cat-btn imitation" id="btn-imitation" data-cat="Imitation Jewellery">
+        <span class="hero-cat-icon">◈</span>
+        <span class="hero-cat-label">Imitation Jewellery</span>
+        <span class="hero-cat-sub">Click to Explore</span>
+      </a>
+    </div>
   </div>
 </section>
 
@@ -48,10 +61,18 @@
 <div class="filter-wrap" id="filter-wrap" style="display:none">
   <div class="cat-tabs">
     <button class="cat-tab active" data-cat="all">All</button>
-    <button class="cat-tab" data-cat="Imitation Jewellery">Imitation Jewellery</button>
-    <button class="cat-tab" data-cat="Sterling Silver 925">Sterling Silver 925</button>
+    <button class="cat-tab" data-cat="Imitation Jewellery">Imitation</button>
+    <button class="cat-tab" data-cat="Sterling Silver 925">925 Silver</button>
   </div>
-  <div class="subcat-pills" id="subcat-pills"></div>
+  <div class="subcat-pills" id="subcat-pills">
+    <button class="subcat-pill active" data-sub="all">All</button>
+    <button class="subcat-pill" data-sub="Rings">Rings</button>
+    <button class="subcat-pill" data-sub="Bracelets">Bracelets</button>
+    <button class="subcat-pill" data-sub="Necklaces">Necklaces</button>
+    <button class="subcat-pill" data-sub="Chains">Chains</button>
+    <button class="subcat-pill" data-sub="New Arrivals">New Arrivals</button>
+    <button class="subcat-pill" data-sub="Best Sellers">Best Sellers</button>
+  </div>
 </div>
 
 <!-- Skeleton loaders -->
@@ -117,9 +138,14 @@
   function buildSubcatPills() {
     const relevant = activeCat === 'all' ? allProducts : allProducts.filter(p => p.category === activeCat);
     const subcats = [...new Set(relevant.map(p => p.subcategory).filter(Boolean))];
-    if (subcats.length === 0) { subcatPills.innerHTML = ''; return; }
-    subcatPills.innerHTML = '<button class="subcat-pill ' + (activeSubcat === 'all' ? 'active' : '') + '" data-sub="all">All</button>' +
-      subcats.map(s => '<button class="subcat-pill ' + (activeSubcat === s ? 'active' : '') + '" data-sub="' + s + '">' + s + '</button>').join('');
+    // Always rebuild pills with static collection filters + dynamic subcats
+    const staticPills = ['All', 'Rings', 'Bracelets', 'Necklaces', 'Chains', 'New Arrivals', 'Best Sellers'];
+    const extraPills = subcats.filter(s => !staticPills.includes(s));
+    const allPills = ['all', ...staticPills.slice(1), ...extraPills];
+    subcatPills.innerHTML = allPills.map(s => {
+      const label = s === 'all' ? 'All' : s;
+      return '<button class="subcat-pill ' + (activeSubcat === s ? 'active' : '') + '" data-sub="' + s + '">' + label + '</button>';
+    }).join('');
     subcatPills.querySelectorAll('.subcat-pill').forEach(btn => {
       btn.addEventListener('click', () => {
         activeSubcat = btn.dataset.sub;
@@ -150,6 +176,7 @@
         '<div class="product-media">' +
           '<img src="' + (p.image_url || 'https://via.placeholder.com/400x400/1a1a1a/888?text=ELIITOZE') + '" alt="' + p.name + '" loading="lazy" />' +
           (p.video_url ? '<video src="' + p.video_url + '" muted loop playsinline></video>' : '') +
+          (p.video_url ? '<div class="video-play-indicator"><span>▶</span> Watch Video</div>' : '') +
           (hasDiscount ? '<span class="product-badge">SALE</span>' : '') +
           (!inStock ? '<span class="out-badge">Out of Stock</span>' : '') +
           (p.category ? '<span class="cat-badge">' + (p.category === 'Sterling Silver 925' ? '925' : 'Imitation') + '</span>' : '') +
@@ -157,6 +184,7 @@
         '<div class="product-info">' +
           (p.subcategory ? '<div class="product-subcat">' + p.subcategory + '</div>' : '') +
           '<div class="product-name">' + p.name + '</div>' +
+          (p.description ? '<div class="product-description">' + p.description + '</div>' : '') +
           '<div class="product-prices">' +
             (hasDiscount ? '<span class="price-original">' + formatPrice(p.price) + '</span>' : '') +
             '<span class="' + (hasDiscount ? 'price-sale' : 'price-only') + '">' + formatPrice(displayPrice) + '</span>' +
@@ -197,6 +225,20 @@
 
   buildSubcatPills();
   renderProducts();
+
+  // ── Hero category buttons
+  document.querySelectorAll('.hero-cat-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const cat = btn.dataset.cat;
+      activeCat = cat;
+      activeSubcat = 'all';
+      document.querySelectorAll('.cat-tab').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+      buildSubcatPills();
+      renderProducts();
+      document.querySelector('.section-header').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
 
   // ── WhatsApp link: ?product=ID
   const urlParams = new URLSearchParams(window.location.search);
