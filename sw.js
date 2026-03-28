@@ -1,19 +1,8 @@
 const CACHE = 'eliitoze-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/script.js',
-  '/supabase.js',
-  '/cart.html',
-  '/login.html',
-  '/manifest.json'
-];
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
+  // No pre-caching — avoids 404 on GitHub Pages subfolders
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {

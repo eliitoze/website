@@ -57,16 +57,18 @@
 </section>
 
 <!-- ── PWA INSTALL BANNER ── -->
-<div id="pwa-install-bar" style="display:none;">
+<div id="pwa-install-bar">
   <div class="pwa-install-inner">
     <div class="pwa-install-left">
-      <img src="icon-192.png" class="pwa-icon" alt="Eliitoze Jewelz" />
       <div class="pwa-install-text">
-        <span class="pwa-install-title">Eliitoze Jewelz</span>
-        <span class="pwa-install-sub">Install App — Home Screen પર ઉમેરો</span>
+        <span class="pwa-install-sub">📲 Home Screen પર App Install કરો — Eliitoze Jewelz</span>
       </div>
     </div>
-    <button class="pwa-install-btn" id="pwa-install-btn">⬇ Install</button>
+    <button class="pwa-install-btn" id="pwa-install-btn">
+      <span class="pwa-btn-icon">⬇</span>
+      <span class="pwa-btn-label">Install App</span>
+      <span class="pwa-btn-sub">Home Screen</span>
+    </button>
     <button class="pwa-dismiss-btn" id="pwa-dismiss-btn">✕</button>
   </div>
 </div>
@@ -301,12 +303,15 @@ const installBar = document.getElementById('pwa-install-bar');
 const installBtn = document.getElementById('pwa-install-btn');
 const dismissBtn = document.getElementById('pwa-dismiss-btn');
 
+// Hide install bar if already installed as PWA
+if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+  installBar.style.display = 'none';
+}
+
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  if (!localStorage.getItem('pwa-dismissed')) {
-    installBar.style.display = 'block';
-  }
+  installBtn.classList.add('ready'); // activate gold style when prompt ready
 });
 
 installBtn.addEventListener('click', async () => {
@@ -314,12 +319,11 @@ installBtn.addEventListener('click', async () => {
   deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
   deferredPrompt = null;
-  installBar.style.display = 'none';
+  if (outcome === 'accepted') installBar.style.display = 'none';
 });
 
 dismissBtn.addEventListener('click', () => {
   installBar.style.display = 'none';
-  localStorage.setItem('pwa-dismissed', '1');
 });
 
 window.addEventListener('appinstalled', () => {
