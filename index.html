@@ -293,7 +293,7 @@
 // ── Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/website/sw.js', { scope: '/website/' }).catch(() => {});
   });
 }
 
