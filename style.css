@@ -357,6 +357,17 @@ body {
 }
 .product-card:hover .video-play-indicator { opacity: 0; }
 
+/* ─── PRODUCT TOUCH HINT ─── */
+.product-touch-hint {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--gold-dark);
+  margin-bottom: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
 /* ─── PRODUCT DESCRIPTION ─── */
 .product-description {
   font-size: 11px;
