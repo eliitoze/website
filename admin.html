@@ -1064,16 +1064,8 @@ async function sendPushNotification() {
   };
 
   // 3. POST to Supabase Edge Function
-  // ── FIX: Use SUPABASE_JWT_KEY (eyJ... JWT) NOT the sb_publishable_ key.
-  //    Edge Functions require a proper JWT in the Authorization header.
-  //    Get your JWT key from: Supabase Dashboard → Project Settings → API → anon public
-  const jwtKey = window.SUPABASE_JWT_KEY;
-  if (!jwtKey || jwtKey === 'PASTE_YOUR_JWT_ANON_KEY_HERE') {
-    statusEl.textContent = '❌ supabase.js ma SUPABASE_JWT_KEY set karo! (eyJ... JWT anon key)';
-    statusEl.style.color = '#E05050';
-    btn.disabled = false;
-    return;
-  }
+  const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5b2Nib3RraG95bWtqYmVna3F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NjM3NTYsImV4cCI6MjA5MDAzOTc1Nn0.4awJdWrrZGtH2b6_Wfv2RsLkqJK6WvN26D6YJHVrwKA';
+  const jwtKey = window.SUPABASE_JWT_KEY || ANON_KEY;
 
   try {
     const res = await fetch(EDGE_FN_URL, {
