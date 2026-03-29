@@ -503,6 +503,7 @@
 </div>
 
 <script src="supabase.js"></script>
+<script src="push-handler.js"></script>
 <script>
 const sb = window.sb;
 const BUCKET = window.MEDIA_BUCKET;
@@ -945,24 +946,18 @@ async function bulkDeleteProducts() {
 
 // ════════════════════════════════════════
 //  PUSH NOTIFICATIONS
+//  Logic is in push-handler.js (PushHandler)
+//  This section handles only the admin UI.
 // ════════════════════════════════════════
 
-const VAPID_PUBLIC_KEY = 'BM9NNO-kYPRNB_9SC35EG1EYD4hkCVufYHlcF2F51pFxcbnjWwpUQnU9O4BfVMS4zwDAYefDfkidEP1mF39QXTE';
 const EDGE_FN_URL = 'https://gyocbotkhoymkjbegkqz.supabase.co/functions/v1/send-push';
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
-}
 
 async function initNotifPanel() {
   const dot   = document.getElementById('notif-permission-dot');
   const label = document.getElementById('notif-permission-label');
   const btn   = document.getElementById('btn-enable-notif');
 
-  if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!PushHandler.isPushSupported()) {
     dot.className = 'notif-dot denied';
     label.textContent = 'Push notifications not supported in this browser';
     btn.disabled = true;
@@ -970,11 +965,14 @@ async function initNotifPanel() {
   }
 
   const perm = Notification.permission;
+
   if (perm === 'granted') {
     dot.className = 'notif-dot active';
     label.textContent = 'Notifications enabled on this device';
     btn.textContent = '✓ Notifications Already Enabled';
     btn.disabled = true;
+    // Silently ensure this device's subscription is saved in DB
+    PushHandler.subscribeDevice();
   } else if (perm === 'denied') {
     dot.className = 'notif-dot denied';
     label.textContent = 'Notifications blocked — browser settings thi allow karo';
@@ -998,8 +996,9 @@ async function subscribeThisDevice() {
   statusEl.textContent = 'Permission maangta chhe...';
 
   try {
-    // 1. Request permission
-    const perm = await Notification.requestPermission();
+    // Request permission + subscribe via PushHandler
+    const perm = await PushHandler.requestPermissionAndSubscribe();
+
     if (perm !== 'granted') {
       statusEl.textContent = '❌ Permission denied. Browser settings thi allow karo.';
       statusEl.style.color = '#E05050';
@@ -1007,37 +1006,6 @@ async function subscribeThisDevice() {
       return;
     }
 
-    // 2. Wait for service worker to be ready
-    statusEl.textContent = 'Service worker ready thava deta chhe...';
-    const reg = await navigator.serviceWorker.ready;
-
-    // 3. Subscribe with VAPID key
-    statusEl.textContent = 'Push subscription create karta chhe...';
-    const subscription = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-    });
-
-    const subJson = subscription.toJSON();
-
-    // 4. Save subscription to Supabase push_subscriptions table
-    statusEl.textContent = 'Subscription save karta chhe...';
-    const { error: dbErr } = await sb.from('push_subscriptions').upsert([{
-      endpoint:       subJson.endpoint,
-      p256dh:         subJson.keys.p256dh,
-      auth:           subJson.keys.auth,
-      user_agent:     navigator.userAgent.slice(0, 200),
-      subscribed_at:  new Date().toISOString()
-    }], { onConflict: 'endpoint' });
-
-    if (dbErr) {
-      statusEl.textContent = '❌ Save failed: ' + dbErr.message;
-      statusEl.style.color = '#E05050';
-      btn.disabled = false;
-      return;
-    }
-
-    // 5. Update UI
     statusEl.textContent = '✅ This device subscribed successfully!';
     statusEl.style.color = 'var(--green)';
     document.getElementById('notif-permission-dot').className = 'notif-dot active';
@@ -1088,22 +1056,31 @@ async function sendPushNotification() {
 
   statusEl.textContent = subs.length + ' subscribers ne notification mokalta chhe...';
 
-  // 2. Build payload — url opens the website root when notification is clicked
+  // 2. Build payload
   const payload = {
     title,
     body,
-    url: 'https://gyocbotkhoymkjbegkqz.supabase.co'.replace('gyocbotkhoymkjbegkqz.supabase.co', window.location.origin)
+    url: 'https://eliitoze.github.io/website/'
   };
-  // Use actual page origin so clicking notification opens correct site
-  payload.url = window.location.origin;
 
   // 3. POST to Supabase Edge Function
+  // ── FIX: Use SUPABASE_JWT_KEY (eyJ... JWT) NOT the sb_publishable_ key.
+  //    Edge Functions require a proper JWT in the Authorization header.
+  //    Get your JWT key from: Supabase Dashboard → Project Settings → API → anon public
+  const jwtKey = window.SUPABASE_JWT_KEY;
+  if (!jwtKey || jwtKey === 'PASTE_YOUR_JWT_ANON_KEY_HERE') {
+    statusEl.textContent = '❌ supabase.js ma SUPABASE_JWT_KEY set karo! (eyJ... JWT anon key)';
+    statusEl.style.color = '#E05050';
+    btn.disabled = false;
+    return;
+  }
+
   try {
     const res = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: {
         'Content-Type':  'application/json',
-        'Authorization': 'Bearer ' + window.SUPABASE_ANON_KEY
+        'Authorization': 'Bearer ' + jwtKey
       },
       body: JSON.stringify({ subscriptions: subs, payload })
     });
