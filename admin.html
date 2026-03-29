@@ -557,18 +557,61 @@ document.getElementById('p-image').addEventListener('change', e => {
   });
 });
 
+// ════════════════════════════════════════════════════════════════════
+//  uploadFile — Cloudflare Worker maarfate GitHub Pages par upload
+//  GitHub PAT Worker ma safe (server-side) — browser ma nahi!
+// ════════════════════════════════════════════════════════════════════
 async function uploadFile(file, folder, statusEl) {
   if (statusEl) statusEl.textContent = 'Uploading ' + file.name + '...';
-  const ext = file.name.split('.').pop();
-  const path = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
-  const { error } = await sb.storage.from(BUCKET).upload(path, file, { cacheControl: '3600', upsert: false });
-  if (error) {
-    if (statusEl) statusEl.textContent = '❌ Upload failed: ' + error.message;
+
+  const workerUrl = window.WORKER_URL;
+  const secret    = window.ADMIN_SECRET;
+
+  if (!workerUrl || workerUrl.includes('PASTE_YOUR')) {
+    if (statusEl) statusEl.textContent = '❌ supabase.js ma WORKER_URL set karo!';
     return null;
   }
-  const { data: urlData } = sb.storage.from(BUCKET).getPublicUrl(path);
-  if (statusEl) statusEl.textContent = '✓ Uploaded';
-  return urlData.publicUrl;
+
+  try {
+    // File → base64 (browser FileReader)
+    const base64 = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload  = () => res(reader.result.split(',')[1]);
+      reader.onerror = () => rej(new Error('File read failed'));
+      reader.readAsDataURL(file);
+    });
+
+    const ext      = file.name.split('.').pop().toLowerCase();
+    const filename = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext;
+
+    // POST to Cloudflare Worker /upload-media
+    const resp = await fetch(workerUrl.replace(/\/$/, '') + '/upload-media', {
+      method: 'POST',
+      headers: {
+        'Content-Type':   'application/json',
+        'X-Admin-Secret': secret
+      },
+      body: JSON.stringify({
+        filename,
+        base64,
+        contentType: file.type || 'application/octet-stream'
+      })
+    });
+
+    const result = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      if (statusEl) statusEl.textContent = '❌ Upload failed: ' + (result.error || resp.status);
+      return null;
+    }
+
+    if (statusEl) statusEl.textContent = '✓ Uploaded';
+    return result.url;  // https://eliitoze.github.io/website/media/images/xxx.jpg
+
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '❌ Upload error: ' + err.message;
+    return null;
+  }
 }
 
 async function addProduct() {
@@ -950,7 +993,7 @@ async function bulkDeleteProducts() {
 //  This section handles only the admin UI.
 // ════════════════════════════════════════
 
-const EDGE_FN_URL = 'https://gyocbotkhoymkjbegkqz.supabase.co/functions/v1/send-push';
+const EDGE_FN_URL = (window.WORKER_URL || '').replace(/\/$/, '') + '/send-push';
 
 async function initNotifPanel() {
   const dot   = document.getElementById('notif-permission-dot');
@@ -1063,16 +1106,22 @@ async function sendPushNotification() {
     url: 'https://eliitoze.github.io/website/'
   };
 
-  // 3. POST to Supabase Edge Function
-  const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5b2Nib3RraG95bWtqYmVna3F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NjM3NTYsImV4cCI6MjA5MDAzOTc1Nn0.4awJdWrrZGtH2b6_Wfv2RsLkqJK6WvN26D6YJHVrwKA';
-  const jwtKey = window.SUPABASE_JWT_KEY || ANON_KEY;
+  // 3. POST to Cloudflare Worker /send-push
+  const workerUrl = window.WORKER_URL;
+  const secret    = window.ADMIN_SECRET;
+  if (!workerUrl || workerUrl.includes('PASTE_YOUR')) {
+    statusEl.textContent = '❌ supabase.js ma WORKER_URL set karo!';
+    statusEl.style.color = '#E05050';
+    btn.disabled = false;
+    return;
+  }
 
   try {
     const res = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: {
-        'Content-Type':  'application/json',
-        'Authorization': 'Bearer ' + jwtKey
+        'Content-Type':   'application/json',
+        'X-Admin-Secret': secret
       },
       body: JSON.stringify({ subscriptions: subs, payload })
     });
@@ -1095,7 +1144,7 @@ async function sendPushNotification() {
       }
     } else {
       const msg = result.error || result.message || ('HTTP ' + res.status);
-      statusEl.textContent = '❌ Edge function error: ' + msg;
+      statusEl.textContent = '❌ Worker error: ' + msg;
       statusEl.style.color = '#E05050';
     }
   } catch (netErr) {
