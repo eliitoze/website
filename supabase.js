@@ -19,3 +19,4 @@ const WA_NUMBER = '919227096270';
 window.sb = sbClient;
 window.MEDIA_BUCKET = MEDIA_BUCKET;
 window.WA_NUMBER = WA_NUMBER;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
