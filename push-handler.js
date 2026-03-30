@@ -12,7 +12,7 @@
   'use strict';
 
   // ── Config ────────────────────────────────────────────────────────
-  const VAPID_PUBLIC_KEY = 'BM9NNO-kYPRNB_9SC35EG1EYD4hkCVufYHlcF2F51pFxcbnjWwpUQnU9O4BfVMS4zwDAYefDfkidEP1mF39QXTE';
+  const VAPID_PUBLIC_KEY = 'BCH3_ZaF1h7i8897qb4wzzmzh9Bsg6_yPfBKJ-YbtsOCPnSK_THG_1YpvOHD7YOTcVn9EkqUrC8qgc6sTDRBeWg';
   // SW path must match your GitHub Pages path (scope /website/)
   const SW_SCOPE    = '/website/';
   const SW_PATH     = '/website/sw.js';
