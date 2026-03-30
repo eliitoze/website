@@ -258,32 +258,21 @@ async function migrateOne(task, idx) {
   const result = { id, name, field, originalUrl: url, newUrl: null, status: 'pending' };
 
   try {
-    // Step 1: Download file from Supabase public URL
-    const fileResp = await fetch(url);
-    if (!fileResp.ok) {
-      throw new Error('Download failed: HTTP ' + fileResp.status);
-    }
+    // Build filename from original Supabase URL
+    const urlPath  = new URL(url).pathname;
+    const origName = urlPath.split('/').pop();
+    const folder   = field === 'image_url' ? 'images' : 'videos';
+    const filename = folder + '/' + origName;
 
-    const blob        = await fileResp.blob();
-    const contentType = blob.type || guessType(url);
-
-    // File → base64
-    const base64 = await blobToBase64(blob);
-
-    // Build filename from original URL path
-    const urlPath    = new URL(url).pathname;
-    const origName   = urlPath.split('/').pop(); // e.g. "1234-abc.jpg"
-    const folder     = field === 'image_url' ? 'images' : 'videos';
-    const filename   = folder + '/' + origName;
-
-    // Step 2: Upload via Worker /upload-media
-    const uploadResp = await fetch(workerUrl + '/upload-media', {
+    // Worker ne sourceUrl aapiye — Worker download + GitHub upload banne karse
+    // Browser thi direct Supabase fetch CORS block kare, Worker karse to ok!
+    const uploadResp = await fetch(workerUrl + '/migrate-media', {
       method: 'POST',
       headers: {
         'Content-Type':   'application/json',
         'X-Admin-Secret': adminSecret
       },
-      body: JSON.stringify({ filename, base64, contentType })
+      body: JSON.stringify({ sourceUrl: url, filename })
     });
 
     const uploadResult = await uploadResp.json().catch(() => ({}));
@@ -293,6 +282,21 @@ async function migrateOne(task, idx) {
     }
 
     const newUrl = uploadResult.url;
+
+    // Already exists on GitHub — DB update still karo
+    if (uploadResult.skipped) {
+      const { error: dbErr } = await sb
+        .from('products')
+        .update({ [field]: newUrl })
+        .eq('id', id);
+      if (dbErr) throw new Error('DB update failed: ' + dbErr.message);
+      result.newUrl = newUrl;
+      result.status = 'skip';
+      stats.skip++;
+      log(`↷ [${id}] ${name} — ${field} already exists, URL updated`, 'skip');
+      updateStats();
+      return result;
+    }
 
     // Step 3: Update Supabase DB
     const { error: dbErr } = await sb
