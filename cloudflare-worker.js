@@ -76,7 +76,7 @@ export default {
 
       if (!ghResp.ok) {
         const err = await ghResp.json().catch(() => ({}));
-        return json({ error: 'GitHub upload failed: ' + (err.message || ghResp.status) }, 502);
+        return json({ error: 'GitHub upload failed (' + ghResp.status + '): ' + (err.message || JSON.stringify(err)) }, 502);
       }
 
       const publicUrl = GITHUB_BASE + safeName;

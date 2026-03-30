@@ -576,10 +576,20 @@ async function uploadFile(file, folder, statusEl) {
     // File → base64 (browser FileReader)
     const base64 = await new Promise((res, rej) => {
       const reader = new FileReader();
-      reader.onload  = () => res(reader.result.split(',')[1]);
+      reader.onload  = () => {
+        const result = reader.result;
+        const comma  = result.indexOf(',');
+        if (comma === -1) { rej(new Error('File read format error')); return; }
+        res(result.substring(comma + 1));
+      };
       reader.onerror = () => rej(new Error('File read failed'));
       reader.readAsDataURL(file);
     });
+
+    if (!base64 || base64.length < 10) {
+      if (statusEl) statusEl.textContent = '❌ File read error — fari try karo';
+      return null;
+    }
 
     const ext      = file.name.split('.').pop().toLowerCase();
     const filename = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext;
@@ -601,7 +611,7 @@ async function uploadFile(file, folder, statusEl) {
     const result = await resp.json().catch(() => ({}));
 
     if (!resp.ok) {
-      if (statusEl) statusEl.textContent = '❌ Upload failed: ' + (result.error || resp.status);
+      if (statusEl) statusEl.textContent = '❌ ' + (result.error || 'Upload failed: ' + resp.status);
       return null;
     }
 
