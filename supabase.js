@@ -20,9 +20,9 @@ const WA_NUMBER = '919227096270';
 //  1. workers.cloudflare.com → New Worker → cloudflare-worker.js paste → Deploy
 //  2. Worker Settings → Variables → Add:
 //       GITHUB_TOKEN      = ghp_xxxx  (PAT: eliitoze/website Contents read+write)
-//       VAPID_PRIVATE_KEY = (Supabase Edge Function secrets thi copy)
+//       VAPID_PRIVATE_KEY = Xn6cC_RUKzHQkm6SwhGgIB5zrfD_WuKVcz4Cw50dnsU
 //       VAPID_PUBLIC_KEY  = BM9NNO-kYPRNB_9SC35EG1EYD4hkCVufYHlcF2F51pFxcbnjWwpUQnU9O4BfVMS4zwDAYefDfkidEP1mF39QXTE
-//       ADMIN_SECRET      = (strong password — same niche)
+//       ADMIN_SECRET      = Eliitoze@2025
 //  3. Worker URL + same password niche paste karo
 // ════════════════════════════════════════════════
 const WORKER_URL   = 'https://eliitoze-worker.bhkmanish.workers.dev';
