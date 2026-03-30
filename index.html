@@ -16,6 +16,19 @@
 </head>
 <body>
 
+<!-- ══════════════════════════════════════
+     PUSH SUBSCRIBE BANNER
+     ══════════════════════════════════════ -->
+<div id="ej-push-banner">
+  <div class="push-banner-bell">🔔</div>
+  <div class="push-banner-text">
+    <strong>New Arrivals &amp; Exclusive Offers</strong>
+    &nbsp;·&nbsp; Subscribe for instant alerts
+  </div>
+  <button class="push-banner-cta" id="ejBannerBtn">Subscribe</button>
+  <button class="push-banner-close" id="ejBannerClose" aria-label="Close">✕</button>
+</div>
+
 <!-- ── NOTICE BANNER ── -->
 <div id="notice-banner" style="display:none;padding:10px 20px;text-align:center;font-size:12px;letter-spacing:1.5px;color:#fff;font-family:inherit;">
   <span id="notice-banner-text"></span>
@@ -330,6 +343,98 @@ window.addEventListener('appinstalled', () => {
   installBar.style.display = 'none';
   deferredPrompt = null;
 });
+</script>
+
+<script src="push-handler.js"></script>
+
+<!-- ══════════════════════════════════════
+     FLOATING PUSH FAB
+     ══════════════════════════════════════ -->
+<button id="ej-push-fab" aria-label="Subscribe for notifications">🔔</button>
+
+<!-- ══════════════════════════════════════
+     PUSH SUBSCRIBE MODAL (bottom sheet)
+     ══════════════════════════════════════ -->
+<div id="ej-push-modal" role="dialog" aria-modal="true">
+  <div class="push-modal-sheet">
+    <div class="push-modal-handle"></div>
+    <div class="push-modal-icon">💎</div>
+    <h3>Stay Updated</h3>
+    <p>
+      Be the first to know about new jewelry arrivals,<br>
+      festive offers &amp; exclusive deals from Eliitoze Jewelz.
+    </p>
+    <div class="push-modal-perks">
+      <span class="push-perk">✦ New Arrivals</span>
+      <span class="push-perk">✦ Sale Alerts</span>
+      <span class="push-perk">✦ Festive Offers</span>
+    </div>
+    <button class="push-modal-allow" id="ejModalAllow">🔔 Allow Notifications</button>
+    <button class="push-modal-skip" id="ejModalSkip">Maybe Later</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  PUSH SUBSCRIBE UI  (banner · FAB · modal)
+//  Works with push-handler.js (PushHandler global)
+// ══════════════════════════════════════════════════════
+(function () {
+  const banner      = document.getElementById('ej-push-banner');
+  const fab         = document.getElementById('ej-push-fab');
+  const modal       = document.getElementById('ej-push-modal');
+  const bannerBtn   = document.getElementById('ejBannerBtn');
+  const bannerClose = document.getElementById('ejBannerClose');
+  const modalAllow  = document.getElementById('ejModalAllow');
+  const modalSkip   = document.getElementById('ejModalSkip');
+
+  // Already subscribed or permission denied → hide everything
+  const done =
+    localStorage.getItem('eliitoze_push_subscribed') === '1' ||
+    Notification.permission === 'denied';
+  if (done) {
+    banner && banner.classList.add('hidden');
+    return;
+  }
+
+  // ── Helpers ──
+  const openModal  = () => modal.classList.add('open');
+  const closeModal = () => modal.classList.remove('open');
+  const hideBanner = () => banner.classList.add('hidden');
+  const showFab    = () => fab.classList.add('visible');
+
+  // ── Subscribe ──
+  async function doSubscribe() {
+    closeModal();
+    let perm = 'default';
+    if (window.PushHandler) {
+      perm = await window.PushHandler.requestPermissionAndSubscribe();
+    } else {
+      perm = await Notification.requestPermission();
+    }
+    if (perm === 'granted') {
+      localStorage.setItem('eliitoze_push_subscribed', '1');
+      fab.classList.remove('visible');
+      // Show success in banner
+      banner.classList.remove('hidden');
+      banner.classList.add('success');
+      const txt = banner.querySelector('.push-banner-text');
+      if (txt) txt.textContent = '✓ Subscribed! You\'re all set 🎉';
+      setTimeout(hideBanner, 3000);
+    }
+  }
+
+  // ── Wire events ──
+  bannerBtn   && bannerBtn.addEventListener('click',  openModal);
+  bannerClose && bannerClose.addEventListener('click', () => { hideBanner(); showFab(); });
+  fab         && fab.addEventListener('click',        openModal);
+  modalAllow  && modalAllow.addEventListener('click',  doSubscribe);
+  modalSkip   && modalSkip.addEventListener('click',   closeModal);
+  modal       && modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  // FAB as fallback after push-handler auto-prompt resolves
+  setTimeout(showFab, 20000);
+})();
 </script>
 </body>
 </html>
