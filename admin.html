@@ -278,8 +278,8 @@
           <label class="form-label">Product Video (Optional)
             <span style="color:var(--text-muted);font-size:10px;font-weight:normal;"> — Badha products ne same video lagse</span>
           </label>
-          <div class="upload-area" id="vid-upload-area">
-            <input type="file" id="p-video" accept="video/*" />
+          <div class="upload-area" id="vid-upload-area" style="cursor:pointer;" onclick="document.getElementById('p-video').click()">
+            <input type="file" id="p-video" accept="video/*" style="display:none" />
             <div class="upload-icon">🎬</div>
             <div class="upload-label">Click to upload video</div>
             <div class="upload-sub">MP4, MOV — recommended &lt;20MB</div>
@@ -650,6 +650,7 @@ async function addProduct() {
       category, subcategory
     }]);
     if (!error) successCount++;
+    else { statusEl.textContent = '❌ DB Error: ' + error.message; statusEl.style.color = '#E05050'; }
   }
 
   if (successCount === imgFiles.length) {
