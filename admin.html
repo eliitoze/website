@@ -278,8 +278,8 @@
           <label class="form-label">Product Video (Optional)
             <span style="color:var(--text-muted);font-size:10px;font-weight:normal;"> — Badha products ne same video lagse</span>
           </label>
-          <div class="upload-area" id="vid-upload-area" style="cursor:pointer;" onclick="document.getElementById('p-video').click()">
-            <input type="file" id="p-video" accept="video/*" style="display:none" />
+          <div class="upload-area" id="vid-upload-area">
+            <input type="file" id="p-video" accept="video/*" />
             <div class="upload-icon">🎬</div>
             <div class="upload-label">Click to upload video</div>
             <div class="upload-sub">MP4, MOV — recommended &lt;20MB</div>
@@ -576,20 +576,10 @@ async function uploadFile(file, folder, statusEl) {
     // File → base64 (browser FileReader)
     const base64 = await new Promise((res, rej) => {
       const reader = new FileReader();
-      reader.onload  = () => {
-        const result = reader.result;
-        const comma  = result.indexOf(',');
-        if (comma === -1) { rej(new Error('File read format error')); return; }
-        res(result.substring(comma + 1));
-      };
+      reader.onload  = () => res(reader.result.split(',')[1]);
       reader.onerror = () => rej(new Error('File read failed'));
       reader.readAsDataURL(file);
     });
-
-    if (!base64 || base64.length < 10) {
-      if (statusEl) statusEl.textContent = '❌ File read error — fari try karo';
-      return null;
-    }
 
     const ext      = file.name.split('.').pop().toLowerCase();
     const filename = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext;
@@ -611,7 +601,7 @@ async function uploadFile(file, folder, statusEl) {
     const result = await resp.json().catch(() => ({}));
 
     if (!resp.ok) {
-      if (statusEl) statusEl.textContent = '❌ ' + (result.error || 'Upload failed: ' + resp.status);
+      if (statusEl) statusEl.textContent = '❌ Upload failed: ' + (result.error || resp.status);
       return null;
     }
 
@@ -622,6 +612,25 @@ async function uploadFile(file, folder, statusEl) {
     if (statusEl) statusEl.textContent = '❌ Upload error: ' + err.message;
     return null;
   }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  dbWrite — Cloudflare Worker maarfate Supabase products write
+//  (service_role key worker ma safe — browser ma nahi)
+// ════════════════════════════════════════════════════════════════════
+async function dbWrite(operation, data, matchId) {
+  const workerUrl = window.WORKER_URL;
+  const secret    = window.ADMIN_SECRET;
+  const body = { operation, table: 'products', data };
+  if (matchId !== undefined) body.match = { id: matchId };
+  const resp = await fetch(workerUrl.replace(/\/$/, '') + '/db-write', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
+    body: JSON.stringify(body)
+  });
+  const result = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(result.error || 'DB write failed: ' + resp.status);
+  return result;
 }
 
 async function addProduct() {
@@ -654,13 +663,14 @@ async function addProduct() {
     statusEl.textContent = 'Uploading image ' + (i+1) + ' of ' + imgFiles.length + '...';
     const imageUrl = await uploadFile(imgFiles[i], 'images', document.getElementById('img-status'));
     if (!imageUrl) continue;
-    const { error } = await sb.from('products').insert([{
-      name, price, discount_price: dprice, qty,
-      image_url: imageUrl, video_url: videoUrl,
-      category, subcategory
-    }]);
-    if (!error) successCount++;
-    else { statusEl.textContent = '❌ DB Error: ' + error.message; statusEl.style.color = '#E05050'; }
+    try {
+      await dbWrite('insert', {
+        name, price, discount_price: dprice, qty,
+        image_url: imageUrl, video_url: videoUrl,
+        category, subcategory
+      });
+      successCount++;
+    } catch(e) { console.error('Insert error:', e.message); }
   }
 
   if (successCount === imgFiles.length) {
@@ -775,15 +785,17 @@ async function loadManageTable() {
 async function updateQty(id) {
   const qty = parseInt(document.getElementById('qty-' + id).value);
   if (isNaN(qty) || qty < 0) return alert('Invalid quantity');
-  const { error } = await sb.from('products').update({ qty }).eq('id', id);
-  if (error) return alert('Error: ' + error.message);
-  alert('Quantity updated!');
+  try {
+    await dbWrite('update', { qty }, id);
+    alert('Quantity updated!');
+  } catch(e) { return alert('Error: ' + e.message); }
   loadManageTable(); loadStats();
 }
 async function deleteProduct(id, name) {
   if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
-  const { error } = await sb.from('products').delete().eq('id', id);
-  if (error) return alert('Error: ' + error.message);
+  try {
+    await dbWrite('delete', null, id);
+  } catch(e) { return alert('Error: ' + e.message); }
   loadManageTable(); loadStats();
 }
 
@@ -948,8 +960,7 @@ async function applyBulkEdit() {
   // Update each selected product
   let errors = 0;
   for (const id of ids) {
-    const { error } = await sb.from('products').update(updates).eq('id', id);
-    if (error) errors++;
+    try { await dbWrite('update', updates, id); } catch(e) { errors++; }
   }
 
   if (errors === 0) {
@@ -981,8 +992,7 @@ async function bulkDeleteProducts() {
 
   let errors = 0;
   for (const id of ids) {
-    const { error } = await sb.from('products').delete().eq('id', id);
-    if (error) errors++;
+    try { await dbWrite('delete', null, id); } catch(e) { errors++; }
   }
 
   if (errors === 0) {
