@@ -20,16 +20,13 @@ const WA_NUMBER = '919227096270';
 //  1. workers.cloudflare.com → New Worker → cloudflare-worker.js paste → Deploy
 //  2. Worker Settings → Variables → Add:
 //       GITHUB_TOKEN      = ghp_xxxx  (PAT: eliitoze/website Contents read+write)
-//       VAPID_PRIVATE_KEY = MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg_BV4o8mdbv32ck5xjLehG623t6tSwAc1Sjz-W8tbbxyhRANCAAQh9_2WhdYe4vPPe6m-MM85s4fQbIOv8j3wSifmG7bDgj50iv0xxv9WKbzhw-2Dk3FZ_RJKlKwvKoHOrEw0QXlo
-//       VAPID_PUBLIC_KEY  = BCH3_ZaF1h7i8897qb4wzzmzh9Bsg6_yPfBKJ-YbtsOCPnSK_THG_1YpvOHD7YOTcVn9EkqUrC8qgc6sTDRBeWg
-//       ADMIN_SECRET      = Eliitoze@2025
+//       VAPID_PRIVATE_KEY = (Supabase Edge Function secrets thi copy)
+//       VAPID_PUBLIC_KEY  = BM9NNO-kYPRNB_9SC35EG1EYD4hkCVufYHlcF2F51pFxcbnjWwpUQnU9O4BfVMS4zwDAYefDfkidEP1mF39QXTE
+//       ADMIN_SECRET      = (strong password — same niche)
 //  3. Worker URL + same password niche paste karo
 // ════════════════════════════════════════════════
 const WORKER_URL   = 'https://eliitoze-worker.bhkmanish.workers.dev';
 const ADMIN_SECRET = 'Eliitoze@2025';
-
-// ── VAPID Public Key (push-handler.js / sw.js ma pan same key use karvo) ──
-const VAPID_PUBLIC_KEY = 'BCH3_ZaF1h7i8897qb4wzzmzh9Bsg6_yPfBKJ-YbtsOCPnSK_THG_1YpvOHD7YOTcVn9EkqUrC8qgc6sTDRBeWg';
 
 // ── Export ──
 window.sb                = sbClient;
@@ -38,5 +35,4 @@ window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
 window.SUPABASE_JWT_KEY  = SUPABASE_ANON_KEY;
 window.WORKER_URL        = WORKER_URL;
 window.ADMIN_SECRET      = ADMIN_SECRET;
-window.VAPID_PUBLIC_KEY  = VAPID_PUBLIC_KEY;
 window.MEDIA_BUCKET      = 'product-media'; // legacy — no longer used for upload
