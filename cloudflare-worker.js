@@ -3,12 +3,15 @@
 //  Routes:
 //    POST /upload-media  → GitHub Pages par file upload
 //    POST /send-push     → Web Push notification send
+//    POST /db-write      → Supabase products INSERT / UPDATE / DELETE
 //
 //  Environment Variables (Worker Settings → Variables):
-//    GITHUB_TOKEN       = ghp_xxxx (PAT: Contents read+write on eliitoze/website)
-//    VAPID_PRIVATE_KEY  = (your VAPID private key)
-//    VAPID_PUBLIC_KEY   = BM9NNO-kYPRNB_9SC35EG1EYD4hkCVufYHlcF2F51pFxcbnjWwpUQnU9O4BfVMS4zwDAYefDfkidEP1mF39QXTE
-//    ADMIN_SECRET       = (strong password — same in supabase.js)
+//    GITHUB_TOKEN        = ghp_xxxx (PAT: Contents read+write on eliitoze/website)
+//    VAPID_PRIVATE_KEY   = (your VAPID private key)
+//    VAPID_PUBLIC_KEY    = BM9NNO-kYPRNB_9SC35EG1EYD4hkCVufYHlcF2F51pFxcbnjWwpUQnU9O4BfVMS4zwDAYefDfkidEP1mF39QXTE
+//    ADMIN_SECRET        = (strong password — same in supabase.js)
+//    SUPABASE_URL        = https://gyocbotkhoymkjbegkqz.supabase.co
+//    SUPABASE_SERVICE_KEY = (Supabase Dashboard → Settings → API → service_role key)
 // ════════════════════════════════════════════════════════════════════
 
 const GITHUB_OWNER  = 'eliitoze';
@@ -59,6 +62,28 @@ export default {
 
       // GitHub Contents API
       const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${repoPath}`;
+
+      // Check if file already exists — need SHA for update
+      let existingSha = undefined;
+      const checkResp = await fetch(apiUrl, {
+        headers: {
+          'Authorization': 'token ' + env.GITHUB_TOKEN,
+          'Accept':        'application/vnd.github.v3+json',
+          'User-Agent':    'Eliitoze-Worker'
+        }
+      });
+      if (checkResp.ok) {
+        const existing = await checkResp.json().catch(() => ({}));
+        existingSha = existing.sha;
+      }
+
+      const uploadBody = {
+        message: 'Upload media: ' + safeName,
+        content: base64,
+        branch:  GITHUB_BRANCH
+      };
+      if (existingSha) uploadBody.sha = existingSha;
+
       const ghResp = await fetch(apiUrl, {
         method: 'PUT',
         headers: {
@@ -67,16 +92,12 @@ export default {
           'Accept':        'application/vnd.github.v3+json',
           'User-Agent':    'Eliitoze-Worker'
         },
-        body: JSON.stringify({
-          message: 'Upload media: ' + safeName,
-          content: base64,
-          branch:  GITHUB_BRANCH
-        })
+        body: JSON.stringify(uploadBody)
       });
 
       if (!ghResp.ok) {
         const err = await ghResp.json().catch(() => ({}));
-        return json({ error: 'GitHub upload failed (' + ghResp.status + '): ' + (err.message || JSON.stringify(err)) }, 502);
+        return json({ error: 'GitHub upload failed: ' + (err.message || ghResp.status) }, 502);
       }
 
       const publicUrl = GITHUB_BASE + safeName;
@@ -102,7 +123,12 @@ export default {
       return json({ sent, failed, total: results.length });
     }
 
-    return json({ error: 'Unknown route. Use /upload-media or /send-push' }, 404);
+    // ── Route: /db-write ────────────────────────────────────────────
+    if (pathname.endsWith('/db-write')) {
+      return handleDbWrite(request, env);
+    }
+
+    return json({ error: 'Unknown route. Use /upload-media, /send-push or /db-write' }, 404);
   }
 };
 
@@ -273,4 +299,74 @@ function b64ToBytes(b64)       {
   const pad = '='.repeat((4 - b64.length%4)%4);
   const raw = atob(b64.replace(/-/g,'+').replace(/_/g,'/') + pad);
   return new Uint8Array([...raw].map(c=>c.charCodeAt(0)));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DB WRITE — Supabase REST API (service_role key — RLS bypass)
+//  Supports: insert / update / delete on 'products' table
+// ═══════════════════════════════════════════════════════════════════
+
+async function handleDbWrite(request, env) {
+  const sbUrl = env.SUPABASE_URL;
+  const sbKey = env.SUPABASE_SERVICE_KEY;
+
+  if (!sbUrl || !sbKey) {
+    return json({ error: 'SUPABASE_URL or SUPABASE_SERVICE_KEY not set in Worker env' }, 500);
+  }
+
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const { operation, table, data, match } = body;
+  // operation: 'insert' | 'update' | 'delete'
+  // table: 'products' (whitelist only)
+  // data: row object (for insert/update)
+  // match: { id: 123 } (for update/delete)
+
+  const ALLOWED_TABLES = ['products'];
+  if (!ALLOWED_TABLES.includes(table)) {
+    return json({ error: 'Table not allowed: ' + table }, 400);
+  }
+
+  const baseUrl = sbUrl.replace(/\/$/, '') + '/rest/v1/' + table;
+  const headers = {
+    'apikey':        sbKey,
+    'Authorization': 'Bearer ' + sbKey,
+    'Content-Type':  'application/json',
+    'Prefer':        'return=representation'
+  };
+
+  let apiUrl = baseUrl;
+  let method;
+  let bodyStr;
+
+  if (operation === 'insert') {
+    method  = 'POST';
+    bodyStr = JSON.stringify(data);
+
+  } else if (operation === 'update') {
+    if (!match || !match.id) return json({ error: 'match.id required for update' }, 400);
+    apiUrl  = baseUrl + '?id=eq.' + match.id;
+    method  = 'PATCH';
+    bodyStr = JSON.stringify(data);
+
+  } else if (operation === 'delete') {
+    if (!match || !match.id) return json({ error: 'match.id required for delete' }, 400);
+    apiUrl  = baseUrl + '?id=eq.' + match.id;
+    method  = 'DELETE';
+    headers['Prefer'] = 'return=minimal';
+
+  } else {
+    return json({ error: 'operation must be insert | update | delete' }, 400);
+  }
+
+  const resp = await fetch(apiUrl, { method, headers, body: bodyStr });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    return json({ error: err.message || 'Supabase error: ' + resp.status }, resp.status);
+  }
+
+  const result = operation === 'delete' ? { success: true } : await resp.json().catch(() => ({}));
+  return json({ success: true, data: result });
 }
