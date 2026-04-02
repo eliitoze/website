@@ -12,7 +12,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Eliitoze Jewelz" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -82,17 +81,13 @@
 <div class="filter-wrap" id="filter-wrap" style="display:none">
   <div class="cat-tabs">
     <button class="cat-tab active" data-cat="all">All</button>
-    <button class="cat-tab" data-cat="Imitation Jewellery">Imitation</button>
     <button class="cat-tab" data-cat="Sterling Silver 925">925 Silver</button>
+    <button class="cat-tab" data-cat="Imitation Jewellery">Imitation</button>
+    <button class="cat-tab" data-cat="Men Jewellery">Men</button>
+    <button class="cat-tab" data-cat="Women Jewellery">Women</button>
   </div>
   <div class="subcat-pills" id="subcat-pills">
     <button class="subcat-pill active" data-sub="all">All</button>
-    <button class="subcat-pill" data-sub="Rings">Rings</button>
-    <button class="subcat-pill" data-sub="Bracelets">Bracelets</button>
-    <button class="subcat-pill" data-sub="Necklaces">Necklaces</button>
-    <button class="subcat-pill" data-sub="Chains">Chains</button>
-    <button class="subcat-pill" data-sub="New Arrivals">New Arrivals</button>
-    <button class="subcat-pill" data-sub="Best Sellers">Best Sellers</button>
   </div>
 </div>
 
@@ -117,10 +112,10 @@
 // ── Load Notice Banner
 (async () => {
   try {
-    const { data } = await window.sb.from('site_settings').select('value').eq('key', 'notice_banner').single();
-    if (!data) return;
-    const s = JSON.parse(data.value);
-    if (s.active && s.text) {
+    const res = await fetch('data/settings.json?v=' + Date.now());
+    if (!res.ok) return;
+    const s = (await res.json()).notice_banner;
+    if (s && s.active && s.text) {
       const banner = document.getElementById('notice-banner');
       banner.style.background = s.color || '#B8860B';
       banner.style.display = 'block';
@@ -129,44 +124,91 @@
   } catch(e) {}
 })();
 
-// ── Products
+// ── Likes + Subcategories + Products
 (async () => {
-  const grid = document.getElementById('products-grid');
-  const skeleton = document.getElementById('skeleton-grid');
-  const countEl = document.getElementById('product-count');
+  const grid       = document.getElementById('products-grid');
+  const skeleton   = document.getElementById('skeleton-grid');
+  const countEl    = document.getElementById('product-count');
   const filterWrap = document.getElementById('filter-wrap');
   const subcatPills = document.getElementById('subcat-pills');
 
-  let allProducts = [];
-  let activeCat = 'all';
+  let allProducts  = [];
+  let activeCat    = 'all';
   let activeSubcat = 'all';
+  let likesData    = {};
+  let likedSet     = new Set(JSON.parse(localStorage.getItem('eliitoze_liked') || '[]'));
+  let allSubcats   = ['Necklace','Necklace Set','Bracelet','Chain','Ring','Anklet','Earring','Mala','Kada','Pendant','Bangle'];
 
-  const { data: products, error } = await window.sb
-    .from('products').select('*').order('id', { ascending: false });
+  // Load settings (subcategories), products, likes in parallel
+  const [settingsRes, productsRes, likesRes] = await Promise.allSettled([
+    fetch('data/settings.json?v=' + Date.now()).then(r => r.json()),
+    fetch('data/products.json?v=' + Date.now()).then(r => r.json()),
+    fetch('data/likes.json?v=' + Date.now()).then(r => r.json())
+  ]);
+
+  if (settingsRes.status === 'fulfilled' && settingsRes.value?.subcategories) {
+    allSubcats = settingsRes.value.subcategories;
+  }
+  if (likesRes.status === 'fulfilled') likesData = likesRes.value || {};
 
   skeleton.style.display = 'none';
   grid.style.display = 'grid';
 
-  if (error || !products || products.length === 0) {
+  if (productsRes.status === 'rejected' || !Array.isArray(productsRes.value) || productsRes.value.length === 0) {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">💎</div><p>Collection coming soon</p></div>';
     countEl.textContent = '0 items';
     return;
   }
 
-  allProducts = products;
+  allProducts = productsRes.value;
   filterWrap.style.display = 'block';
 
+  // ── Like a product
+  async function toggleLike(productId, btn) {
+    const id = String(productId);
+    const liked = likedSet.has(id);
+    if (liked) {
+      likedSet.delete(id);
+    } else {
+      likedSet.add(id);
+    }
+    localStorage.setItem('eliitoze_liked', JSON.stringify([...likedSet]));
+
+    // Optimistic UI
+    const newCount = (likesData[id] || 0) + (liked ? -1 : 1);
+    likesData[id] = Math.max(0, newCount);
+    updateLikeBtn(btn, id);
+
+    // Save to backend
+    try {
+      await fetch(window.WORKER_URL.replace(/\/$/, '') + '/db-write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operation: liked ? 'unlike' : 'like', table: 'likes', data: { id, delta: liked ? -1 : 1 } })
+      });
+    } catch(e) {}
+  }
+
+  function updateLikeBtn(btn, id) {
+    const count = likesData[String(id)] || 0;
+    const liked = likedSet.has(String(id));
+    btn.className = 'btn-like' + (liked ? ' liked' : '');
+    btn.innerHTML = (liked ? '❤️' : '🤍') + ' <span class="like-count">' + (count > 0 ? count : '') + '</span>';
+  }
+
+  // ── Build subcat pills from settings + products
   function buildSubcatPills() {
     const relevant = activeCat === 'all' ? allProducts : allProducts.filter(p => p.category === activeCat);
-    const subcats = [...new Set(relevant.map(p => p.subcategory).filter(Boolean))];
-    // Always rebuild pills with static collection filters + dynamic subcats
-    const staticPills = ['All', 'Rings', 'Bracelets', 'Necklaces', 'Chains', 'New Arrivals', 'Best Sellers'];
-    const extraPills = subcats.filter(s => !staticPills.includes(s));
-    const allPills = ['all', ...staticPills.slice(1), ...extraPills];
-    subcatPills.innerHTML = allPills.map(s => {
-      const label = s === 'all' ? 'All' : s;
-      return '<button class="subcat-pill ' + (activeSubcat === s ? 'active' : '') + '" data-sub="' + s + '">' + label + '</button>';
-    }).join('');
+    const usedSubcats = new Set(relevant.map(p => p.subcategory).filter(Boolean));
+    const pills = allSubcats.filter(s => usedSubcats.has(s));
+    const extraUsed = [...usedSubcats].filter(s => !allSubcats.includes(s));
+    const finalPills = [...pills, ...extraUsed];
+
+    subcatPills.innerHTML = '<button class="subcat-pill ' + (activeSubcat === 'all' ? 'active' : '') + '" data-sub="all">All</button>' +
+      finalPills.map(s =>
+        '<button class="subcat-pill ' + (activeSubcat === s ? 'active' : '') + '" data-sub="' + s + '">' + s + '</button>'
+      ).join('');
+
     subcatPills.querySelectorAll('.subcat-pill').forEach(btn => {
       btn.addEventListener('click', () => {
         activeSubcat = btn.dataset.sub;
@@ -177,6 +219,16 @@
     });
   }
 
+  // ── Cat badge label
+  function catBadgeLabel(cat) {
+    if (cat === 'Sterling Silver 925') return '925';
+    if (cat === 'Imitation Jewellery') return 'Imitation';
+    if (cat === 'Men Jewellery') return 'Men';
+    if (cat === 'Women Jewellery') return 'Women';
+    return cat;
+  }
+
+  // ── Render product cards
   function renderProducts() {
     let filtered = allProducts;
     if (activeCat !== 'all') filtered = filtered.filter(p => p.category === activeCat);
@@ -191,6 +243,10 @@
       const hasDiscount = p.discount_price && p.discount_price < p.price;
       const displayPrice = hasDiscount ? p.discount_price : p.price;
       const inStock = p.qty > 0;
+      const likeCount = likesData[String(p.id)] || 0;
+      const isLiked = likedSet.has(String(p.id));
+      const shareUrl = window.location.origin + window.location.pathname + '?product=' + p.id;
+
       const card = document.createElement('div');
       card.className = 'product-card';
       card.innerHTML =
@@ -200,27 +256,52 @@
           (p.video_url ? '<div class="video-play-indicator"><span>▶</span> Watch Video</div>' : '') +
           (hasDiscount ? '<span class="product-badge">SALE</span>' : '') +
           (!inStock ? '<span class="out-badge">Out of Stock</span>' : '') +
-          (p.category ? '<span class="cat-badge">' + (p.category === 'Sterling Silver 925' ? '925' : 'Imitation') + '</span>' : '') +
+          (p.category ? '<span class="cat-badge">' + catBadgeLabel(p.category) + '</span>' : '') +
         '</div>' +
         '<div class="product-info">' +
           (p.subcategory ? '<div class="product-subcat">' + p.subcategory + '</div>' : '') +
           '<div class="product-name">' + p.name + '</div>' +
-          '<div class="product-touch-hint">Touch Image &nbsp;·&nbsp; ફોટો ને ટચ કરો</div>' +
           (p.description ? '<div class="product-description">' + p.description + '</div>' : '') +
           '<div class="product-prices">' +
             (hasDiscount ? '<span class="price-original">' + formatPrice(p.price) + '</span>' : '') +
             '<span class="' + (hasDiscount ? 'price-sale' : 'price-only') + '">' + formatPrice(displayPrice) + '</span>' +
+          '</div>' +
+          '<div class="product-actions">' +
+            '<button class="btn-like' + (isLiked ? ' liked' : '') + '" data-pid="' + p.id + '">' +
+              (isLiked ? '❤️' : '🤍') + ' <span class="like-count">' + (likeCount > 0 ? likeCount : '') + '</span>' +
+            '</button>' +
+            '<button class="btn-wa-share" data-pid="' + p.id + '" data-name="' + p.name.replace(/"/g, '') + '" data-url="' + shareUrl + '">' +
+              '<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' +
+              ' Share' +
+            '</button>' +
           '</div>' +
           '<button class="btn-add" ' + (!inStock ? 'disabled' : '') + ' data-id="' + p.id + '">' +
             (inStock ? 'Add to Cart' : 'Out of Stock') +
           '</button>' +
         '</div>';
 
+      // Video hover
       if (p.video_url) {
         const video = card.querySelector('video');
         card.addEventListener('mouseenter', () => video.play().catch(() => {}));
         card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
       }
+
+      // Like button
+      card.querySelector('.btn-like').addEventListener('click', e => {
+        e.stopPropagation();
+        toggleLike(p.id, e.currentTarget);
+      });
+
+      // WhatsApp share
+      card.querySelector('.btn-wa-share').addEventListener('click', e => {
+        e.stopPropagation();
+        const btn = e.currentTarget;
+        const msg = encodeURIComponent('✨ ' + btn.dataset.name + '\n\nEliitoze Jewelz પર જુઓ 👇\n' + btn.dataset.url);
+        window.open('https://wa.me/?text=' + msg, '_blank');
+      });
+
+      // Add to Cart
       card.querySelector('.btn-add').addEventListener('click', e => {
         e.stopPropagation();
         const btn = e.currentTarget;
@@ -230,10 +311,12 @@
         setTimeout(() => { btn.textContent = 'Add to Cart'; btn.classList.remove('added'); }, 1500);
         showToast(p.name + ' added to cart');
       });
+
       grid.appendChild(card);
     });
   }
 
+  // ── Category tabs
   document.querySelectorAll('.cat-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       activeCat = btn.dataset.cat;
@@ -245,12 +328,9 @@
     });
   });
 
-  buildSubcatPills();
-  renderProducts();
-
   // ── Hero category buttons
   document.querySelectorAll('.hero-cat-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', e => {
       e.preventDefault();
       const cat = btn.dataset.cat;
       activeCat = cat;
@@ -262,14 +342,17 @@
     });
   });
 
-  // ── WhatsApp link: ?product=ID
+  buildSubcatPills();
+  renderProducts();
+
+  // ── WhatsApp deep link: ?product=ID
   const urlParams = new URLSearchParams(window.location.search);
   const targetId = urlParams.get('product');
   if (targetId) {
     setTimeout(() => {
-      const targetProduct = allProducts.find(p => String(p.id) === String(targetId));
-      if (targetProduct && targetProduct.category) {
-        activeCat = targetProduct.category;
+      const tp = allProducts.find(p => String(p.id) === String(targetId));
+      if (tp?.category) {
+        activeCat = tp.category;
         activeSubcat = 'all';
         document.querySelectorAll('.cat-tab').forEach(b => b.classList.toggle('active', b.dataset.cat === activeCat));
         buildSubcatPills();

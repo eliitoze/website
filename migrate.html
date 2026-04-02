@@ -361,5 +361,86 @@ function downloadReport() {
   a.click();
 }
 </script>
+
+
+  <div class="card" style="margin-top:24px;border-color:#c9a84c33;">
+    <h2 style="font-size:13px;letter-spacing:2px;color:#c9a84c;margin-bottom:4px;">STEP 2 — DATA MIGRATION</h2>
+    <p style="font-size:11px;color:#888;letter-spacing:1px;margin-bottom:16px;">Supabase products + settings → GitHub JSON files (ek vaar karvu)</p>
+    <button class="btn" id="btn-migrate-data" onclick="migrateData()">Export Data to GitHub JSON</button>
+    <div id="data-migrate-log" style="margin-top:12px;font-size:12px;line-height:1.8;"></div>
+  </div>
+
+  <script>
+  function dlog(msg, type) {
+    const el = document.getElementById('data-migrate-log');
+    const color = type === 'err' ? '#e05050' : type === 'ok' ? '#4caf50' : '#c9a84c';
+    el.innerHTML += '<div style="color:' + color + '">' + msg + '</div>';
+  }
+
+  async function migrateData() {
+    const btn = document.getElementById('btn-migrate-data');
+    btn.disabled = true;
+    document.getElementById('data-migrate-log').innerHTML = '';
+
+    const sbUrl    = document.getElementById('cfg-sb-url').value.trim();
+    const sbKey    = document.getElementById('cfg-sb-key').value.trim();
+    const workerUrl = document.getElementById('cfg-worker-url').value.trim();
+    const secret   = document.getElementById('cfg-secret').value.trim();
+
+    if (!sbUrl || !sbKey || !workerUrl || !secret) {
+      dlog('❌ Upar badha fields fill karo.', 'err');
+      btn.disabled = false; return;
+    }
+
+    const { createClient } = window.supabase;
+    const sb = createClient(sbUrl, sbKey);
+
+    // 1. Fetch products
+    dlog('📦 Products fetch karta chhe...', 'info');
+    const { data: products, error: pErr } = await sb.from('products').select('*').order('id', { ascending: false });
+    if (pErr) { dlog('❌ Products fetch failed: ' + pErr.message, 'err'); btn.disabled = false; return; }
+    dlog('✅ ' + products.length + ' products fetched', 'ok');
+
+    // 2. Fetch site_settings
+    dlog('⚙️ Settings fetch karta chhe...', 'info');
+    const { data: settingsRows } = await sb.from('site_settings').select('*');
+    const settings = {};
+    if (settingsRows) {
+      for (const row of settingsRows) {
+        try { settings[row.key] = JSON.parse(row.value); } catch(e) { settings[row.key] = row.value; }
+      }
+    }
+    dlog('✅ Settings fetched', 'ok');
+
+    // 3. Write products.json to GitHub via Worker
+    dlog('📤 products.json GitHub par save karta chhe...', 'info');
+    try {
+      const r = await fetch(workerUrl.replace(/\/$/, '') + '/db-write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
+        body: JSON.stringify({ operation: '_init_products', table: 'products', data: products })
+      });
+      const res = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(res.error || r.status);
+      dlog('✅ products.json saved!', 'ok');
+    } catch(e) { dlog('❌ products.json save failed: ' + e.message, 'err'); btn.disabled = false; return; }
+
+    // 4. Write settings.json to GitHub via Worker
+    dlog('📤 settings.json GitHub par save karta chhe...', 'info');
+    try {
+      const r = await fetch(workerUrl.replace(/\/$/, '') + '/db-write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
+        body: JSON.stringify({ operation: 'upsert', table: 'settings', data: settings })
+      });
+      const res = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(res.error || r.status);
+      dlog('✅ settings.json saved!', 'ok');
+    } catch(e) { dlog('❌ settings.json save failed: ' + e.message, 'err'); btn.disabled = false; return; }
+
+    dlog('🎉 Migration complete! GitHub Pages par deploy karo ane test karo.', 'ok');
+    btn.disabled = false;
+  }
+  </script>
 </body>
 </html>

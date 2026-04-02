@@ -197,6 +197,7 @@
     <button class="sidebar-link" onclick="showPanel('add-product', this)">➕ Add Product</button>
     <button class="sidebar-link" onclick="showPanel('manage', this)">📦 Manage Products</button>
     <button class="sidebar-link" onclick="showPanel('edit-products', this)">✏️ Edit Products</button>
+    <button class="sidebar-link" onclick="showPanel('categories', this)">🏷️ Categories</button>
     <button class="sidebar-link" onclick="showPanel('notice', this)">📢 Notice Banner</button>
     <button class="sidebar-link" onclick="showPanel('push-notifications', this)">🔔 Push Notifications</button>
   </aside>
@@ -212,6 +213,8 @@
         <div class="stat-card"><div class="stat-val" id="stat-instock">—</div><div class="stat-label">In Stock</div></div>
         <div class="stat-card"><div class="stat-val" id="stat-outstock">—</div><div class="stat-label">Out of Stock</div></div>
         <div class="stat-card"><div class="stat-val" id="stat-video">—</div><div class="stat-label">With Video</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-likes">—</div><div class="stat-label">Total Likes</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-shares">—</div><div class="stat-label">Most Liked</div></div>
       </div>
       <p style="color:var(--text-muted);font-size:12px;letter-spacing:1px;">Welcome back, Admin. Manage your jewellery collection from the sidebar.</p>
     </div>
@@ -242,24 +245,22 @@
           <div class="form-group">
             <label class="form-label">Category *</label>
             <select class="form-input" id="p-category">
-              <option value="Imitation Jewellery">Imitation Jewellery</option>
               <option value="Sterling Silver 925">Sterling Silver 925</option>
+              <option value="Imitation Jewellery">Imitation Jewellery</option>
+              <option value="Men Jewellery">Men Jewellery</option>
+              <option value="Women Jewellery">Women Jewellery</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">Sub Category</label>
             <select class="form-input" id="p-subcategory">
               <option value="">— Select —</option>
-              <option value="Necklace Set">Necklace Set</option>
-              <option value="Bracelet">Bracelet</option>
-              <option value="Earrings">Earrings</option>
-              <option value="Ring">Ring</option>
-              <option value="Pendant">Pendant</option>
-              <option value="Bangle">Bangle</option>
-              <option value="Anklet">Anklet</option>
-              <option value="Maang Tikka">Maang Tikka</option>
             </select>
           </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description (Optional)</label>
+          <textarea class="form-input" id="p-description" rows="2" placeholder="e.g. 92.5 sterling silver, handcrafted, oxidised finish..." style="resize:vertical;min-height:60px;"></textarea>
         </div>
         <div class="form-group">
           <label class="form-label">Product Images *
@@ -293,6 +294,26 @@
     </div>
 
     <!-- Notice Banner -->
+    <div class="admin-panel" id="panel-categories">
+      <div class="panel-title">Categories &amp; Sub-Categories</div>
+      <div class="form-group">
+        <label class="form-label">Main Categories (Fixed)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+          <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">✦ Sterling Silver 925</span>
+          <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">◈ Imitation Jewellery</span>
+          <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">♦ Men Jewellery</span>
+          <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">❋ Women Jewellery</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sub-Categories (Manage)</label>
+        <div class="subcat-manager" id="subcat-manager"></div>
+        <button class="btn-subcat-add" onclick="addSubcatRow()">+ Add Sub-Category</button>
+      </div>
+      <button class="btn-submit" onclick="saveSubcategories()" style="margin-top:16px;">Save Sub-Categories</button>
+      <div class="status-msg" id="subcat-save-status" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+
     <div class="admin-panel" id="panel-notice">
       <div class="panel-title">Notice Banner</div>
       <div class="admin-form">
@@ -435,22 +456,16 @@
         <label class="form-label">Category</label>
         <select class="form-input" id="bulk-category">
           <option value="">— Keep existing —</option>
-          <option value="Imitation Jewellery">Imitation Jewellery</option>
           <option value="Sterling Silver 925">Sterling Silver 925</option>
+          <option value="Imitation Jewellery">Imitation Jewellery</option>
+          <option value="Men Jewellery">Men Jewellery</option>
+          <option value="Women Jewellery">Women Jewellery</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">Sub Category</label>
         <select class="form-input" id="bulk-subcategory">
           <option value="">— Keep existing —</option>
-          <option value="Necklace Set">Necklace Set</option>
-          <option value="Bracelet">Bracelet</option>
-          <option value="Earrings">Earrings</option>
-          <option value="Ring">Ring</option>
-          <option value="Pendant">Pendant</option>
-          <option value="Bangle">Bangle</option>
-          <option value="Anklet">Anklet</option>
-          <option value="Maang Tikka">Maang Tikka</option>
         </select>
       </div>
     </div>
@@ -526,17 +541,112 @@ function showPanel(name, btn) {
   if (name === 'notice') loadNoticeSettings();
   if (name === 'edit-products') loadEditProducts();
   if (name === 'push-notifications') initNotifPanel();
+  if (name === 'categories') loadSubcatManager();
+  if (name === 'dashboard') loadLikeStats();
 }
 
 async function loadStats() {
-  const { data } = await sb.from('products').select('qty, video_url');
-  if (!data) return;
-  document.getElementById('stat-total').textContent = data.length;
-  document.getElementById('stat-instock').textContent = data.filter(p => p.qty > 0).length;
-  document.getElementById('stat-outstock').textContent = data.filter(p => p.qty === 0).length;
-  document.getElementById('stat-video').textContent = data.filter(p => p.video_url).length;
+  try {
+    const res = await fetch('../data/products.json?v=' + Date.now());
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!Array.isArray(data)) return;
+    document.getElementById('stat-total').textContent = data.length;
+    document.getElementById('stat-instock').textContent = data.filter(p => p.qty > 0).length;
+    document.getElementById('stat-outstock').textContent = data.filter(p => p.qty === 0).length;
+    document.getElementById('stat-video').textContent = data.filter(p => p.video_url).length;
+  } catch(e) {}
 }
 loadStats();
+loadSubcatManager();
+
+// ── Load Like Stats for Dashboard
+async function loadLikeStats() {
+  try {
+    const res = await fetch('../data/likes.json?v=' + Date.now());
+    if (!res.ok) return;
+    const likes = await res.json();
+    const total = Object.values(likes).reduce((s, v) => s + (v || 0), 0);
+    document.getElementById('stat-likes').textContent = total;
+    // Most liked product
+    const maxId = Object.entries(likes).sort((a,b) => b[1]-a[1])[0];
+    if (maxId) {
+      const prodRes = await fetch('../data/products.json?v=' + Date.now());
+      const prods = await prodRes.json().catch(() => []);
+      const prod = prods.find(p => String(p.id) === String(maxId[0]));
+      document.getElementById('stat-shares').textContent = prod ? prod.name.slice(0,12) + (prod.name.length > 12 ? '…' : '') + ' (' + maxId[1] + ')' : maxId[1];
+    } else {
+      document.getElementById('stat-shares').textContent = '—';
+    }
+  } catch(e) {}
+}
+
+// ── Subcategory Manager
+let subcatList = ['Necklace','Necklace Set','Bracelet','Chain','Ring','Anklet','Earring','Mala','Kada','Pendant','Bangle'];
+
+async function loadSubcatManager() {
+  try {
+    const res = await fetch('../data/settings.json?v=' + Date.now());
+    if (res.ok) {
+      const cfg = await res.json();
+      if (Array.isArray(cfg.subcategories)) subcatList = cfg.subcategories;
+    }
+  } catch(e) {}
+  renderSubcatManager();
+  // Also populate subcategory dropdowns
+  populateSubcatSelects();
+}
+
+function renderSubcatManager() {
+  const mgr = document.getElementById('subcat-manager');
+  if (!mgr) return;
+  mgr.innerHTML = subcatList.map((s, i) =>
+    '<div class="subcat-item">' +
+      '<input type="text" value="' + s + '" data-idx="' + i + '" onchange="subcatList[' + i + ']=this.value" />' +
+      '<button class="btn-subcat-del" onclick="deleteSubcat(' + i + ')">×</button>' +
+    '</div>'
+  ).join('');
+}
+
+function addSubcatRow() {
+  subcatList.push('');
+  renderSubcatManager();
+  const inputs = document.getElementById('subcat-manager').querySelectorAll('input');
+  inputs[inputs.length - 1].focus();
+}
+
+function deleteSubcat(idx) {
+  subcatList.splice(idx, 1);
+  renderSubcatManager();
+}
+
+function populateSubcatSelects() {
+  ['p-subcategory', 'bulk-subcategory'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const firstOpt = sel.options[0].text;
+    const firstVal = sel.options[0].value;
+    sel.innerHTML = '<option value="' + firstVal + '">' + firstOpt + '</option>' +
+      subcatList.filter(Boolean).map(s => '<option value="' + s + '">' + s + '</option>').join('');
+  });
+}
+
+async function saveSubcategories() {
+  subcatList = subcatList.filter(Boolean);
+  renderSubcatManager();
+  const statusEl = document.getElementById('subcat-save-status');
+  statusEl.textContent = 'Saving...';
+  try {
+    await dbWrite('upsert', { subcategories: subcatList }, undefined, 'settings');
+    statusEl.textContent = '✅ Saved! Site par reflect thase.';
+    statusEl.style.color = 'var(--green)';
+    populateSubcatSelects();
+    setTimeout(() => statusEl.textContent = '', 3000);
+  } catch(e) {
+    statusEl.textContent = '❌ ' + e.message;
+    statusEl.style.color = '#E05050';
+  }
+}
 
 // ── Bulk image preview (add product)
 document.getElementById('p-image').addEventListener('change', e => {
@@ -618,11 +728,11 @@ async function uploadFile(file, folder, statusEl) {
 //  dbWrite — Cloudflare Worker maarfate Supabase products write
 //  (service_role key worker ma safe — browser ma nahi)
 // ════════════════════════════════════════════════════════════════════
-async function dbWrite(operation, data, matchId) {
+async function dbWrite(operation, data, matchId, table) {
   const workerUrl = window.WORKER_URL;
   const secret    = window.ADMIN_SECRET;
-  const body = { operation, table: 'products', data };
-  if (matchId !== undefined) body.match = { id: matchId };
+  const body = { operation, table: table || 'products', data };
+  if (matchId !== undefined && matchId !== null) body.match = { id: matchId };
   const resp = await fetch(workerUrl.replace(/\/$/, '') + '/db-write', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
@@ -640,6 +750,7 @@ async function addProduct() {
   const qty        = parseInt(document.getElementById('p-qty').value);
   const category   = document.getElementById('p-category').value;
   const subcategory = document.getElementById('p-subcategory').value || null;
+  const description = document.getElementById('p-description').value.trim() || null;
   const imgFiles   = Array.from(document.getElementById('p-image').files);
   const vidFile    = document.getElementById('p-video').files[0];
   const statusEl   = document.getElementById('add-status');
@@ -667,7 +778,8 @@ async function addProduct() {
       await dbWrite('insert', {
         name, price, discount_price: dprice, qty,
         image_url: imageUrl, video_url: videoUrl,
-        category, subcategory
+        category, subcategory,
+        description: document.getElementById('p-description').value.trim() || null
       });
       successCount++;
     } catch(e) { console.error('Insert error:', e.message); }
@@ -682,8 +794,8 @@ async function addProduct() {
   }
 
   setTimeout(() => {
-    ['p-name','p-price','p-dprice','p-qty'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('p-category').value = 'Imitation Jewellery';
+    ['p-name','p-price','p-dprice','p-qty','p-description'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('p-category').value = 'Sterling Silver 925';
     document.getElementById('p-subcategory').value = '';
     document.getElementById('p-image').value = '';
     document.getElementById('p-video').value = '';
@@ -728,12 +840,10 @@ async function saveNotice() {
     statusEl.textContent = '⚠️ Banner ON chhe pan message khali chhe.';
     statusEl.style.color = '#E05050'; return;
   }
-  const { error } = await sb.from('site_settings').upsert([{
-    key: 'notice_banner',
-    value: JSON.stringify({ active, text, color: selectedColor })
-  }], { onConflict: 'key' });
-  if (error) {
-    statusEl.textContent = '❌ Save failed: ' + error.message;
+  try {
+    await dbWrite('upsert', { notice_banner: { active, text, color: selectedColor } }, undefined, 'settings');
+  } catch(e) {
+    statusEl.textContent = '❌ Save failed: ' + e.message;
     statusEl.style.color = '#E05050'; return;
   }
   statusEl.textContent = active ? '✅ Banner live thayu!' : '✅ Banner band thayu.';
@@ -741,10 +851,13 @@ async function saveNotice() {
   setTimeout(() => statusEl.textContent = '', 3000);
 }
 async function loadNoticeSettings() {
-  const { data } = await sb.from('site_settings').select('value').eq('key', 'notice_banner').single();
-  if (!data) return;
+  let s;
   try {
-    const s = JSON.parse(data.value);
+    const res = await fetch('../data/settings.json?v=' + Date.now());
+    if (!res.ok) return;
+    const cfg = await res.json();
+    s = cfg.notice_banner;
+    if (!s) return;
     document.getElementById('notice-active').checked = s.active;
     document.getElementById('notice-text').value = s.text || '';
     if (s.color) {
@@ -761,8 +874,14 @@ async function loadNoticeSettings() {
 async function loadManageTable() {
   const wrap = document.getElementById('manage-table-wrap');
   wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Loading...</p>';
-  const { data, error } = await sb.from('products').select('*').order('id', { ascending: false });
-  if (error || !data || data.length === 0) {
+  let data = [], error = false;
+  try {
+    const res = await fetch('../data/products.json?v=' + Date.now());
+    if (!res.ok) throw new Error();
+    data = await res.json();
+    if (!Array.isArray(data)) data = [];
+  } catch(e) { error = true; }
+  if (error || data.length === 0) {
     wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No products found.</p>'; return;
   }
   const rows = data.map(p => `
@@ -811,8 +930,14 @@ async function loadEditProducts() {
   selectedEditIds.clear();
   updateEditToolbar();
 
-  const { data, error } = await sb.from('products').select('*').order('id', { ascending: false });
-  if (error || !data || data.length === 0) {
+  let data = [], error = false;
+  try {
+    const res = await fetch('../data/products.json?v=' + Date.now());
+    if (!res.ok) throw new Error();
+    data = await res.json();
+    if (!Array.isArray(data)) data = [];
+  } catch(e) { error = true; }
+  if (error || data.length === 0) {
     grid.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No products found.</p>';
     return;
   }
@@ -1103,10 +1228,19 @@ async function sendPushNotification() {
   statusEl.style.color = 'var(--text-muted)';
   statusEl.textContent = 'Subscribers load karta chhe...';
 
-  // 1. Fetch all subscriptions from Supabase
-  const { data: subs, error: fetchErr } = await sb.from('push_subscriptions').select('endpoint, p256dh, auth');
-  if (fetchErr) {
-    statusEl.textContent = '❌ Fetch failed: ' + fetchErr.message;
+  // 1. Fetch all subscriptions via Worker (service_role — bypasses RLS)
+  let subs = [];
+  try {
+    const subResp = await fetch(window.WORKER_URL.replace(/\/$/, '') + '/db-write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': window.ADMIN_SECRET },
+      body: JSON.stringify({ operation: 'select', table: 'push_subscriptions' })
+    });
+    const subResult = await subResp.json().catch(() => ({}));
+    if (!subResp.ok) throw new Error(subResult.error || 'Fetch failed');
+    subs = subResult.data || [];
+  } catch(e) {
+    statusEl.textContent = '❌ Fetch failed: ' + e.message;
     statusEl.style.color = '#E05050';
     btn.disabled = false;
     return;

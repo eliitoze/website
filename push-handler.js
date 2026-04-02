@@ -38,21 +38,6 @@
     );
   }
 
-  // ── Wait for window.sb to be available ───────────────────────────
-  function waitForSb(timeoutMs) {
-    return new Promise((resolve, reject) => {
-      if (window.sb) { resolve(window.sb); return; }
-      const t0  = Date.now();
-      const tid = setInterval(() => {
-        if (window.sb) { clearInterval(tid); resolve(window.sb); return; }
-        if (Date.now() - t0 > timeoutMs) {
-          clearInterval(tid);
-          reject(new Error('[Push] window.sb not available after ' + timeoutMs + 'ms'));
-        }
-      }, 100);
-    });
-  }
-
   // ── Register Service Worker ───────────────────────────────────────
   async function registerSW() {
     try {
@@ -69,10 +54,9 @@
     }
   }
 
-  // ── Save subscription object to Supabase ─────────────────────────
+  // ── Save subscription via Cloudflare Worker (service_role — bypasses RLS) ──
   async function saveToSupabase(subscription) {
     try {
-      const sb      = await waitForSb(6000);
       const subJson = subscription.toJSON();
 
       if (!subJson.keys || !subJson.keys.p256dh || !subJson.keys.auth) {
@@ -80,20 +64,35 @@
         return false;
       }
 
-      const { error } = await sb.from('push_subscriptions').upsert([{
-        endpoint:      subJson.endpoint,
-        p256dh:        subJson.keys.p256dh,
-        auth:          subJson.keys.auth,
-        user_agent:    navigator.userAgent.slice(0, 200),
-        subscribed_at: new Date().toISOString()
-      }], { onConflict: 'endpoint' });
-
-      if (error) {
-        console.warn('[Push] Supabase upsert failed:', error.message);
+      const workerUrl = window.WORKER_URL;
+      if (!workerUrl) {
+        console.warn('[Push] WORKER_URL not set — cannot save subscription.');
         return false;
       }
 
-      console.log('[Push] Subscription saved to Supabase ✓');
+      const resp = await fetch(workerUrl.replace(/\/$/, '') + '/db-write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'upsert',
+          table: 'push_subscriptions',
+          data: {
+            endpoint:      subJson.endpoint,
+            p256dh:        subJson.keys.p256dh,
+            auth:          subJson.keys.auth,
+            user_agent:    navigator.userAgent.slice(0, 200),
+            subscribed_at: new Date().toISOString()
+          }
+        })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        console.warn('[Push] Save failed:', err.error || resp.status);
+        return false;
+      }
+
+      console.log('[Push] Subscription saved via Worker ✓');
       return true;
     } catch (err) {
       console.warn('[Push] saveToSupabase error:', err.message);
