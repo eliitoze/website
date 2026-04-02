@@ -3,14 +3,14 @@
 //  Routes:
 //    POST /upload-media  → GitHub Pages par file upload
 //    POST /send-push     → Web Push notification send
-//    POST /db-write      → Supabase products INSERT / UPDATE / DELETE
+//    POST /db-write      → GitHub JSON (products/settings) + Supabase (push only)
 //
 //  Environment Variables (Worker Settings → Variables):
-//    GITHUB_TOKEN        = ghp_xxxx (PAT: Contents read+write on eliitoze/website)
-//    VAPID_PRIVATE_KEY   = (your VAPID private key)
-//    VAPID_PUBLIC_KEY    = BM9NNO-kYPRNB_9SC35EG1EYD4hkCVufYHlcF2F51pFxcbnjWwpUQnU9O4BfVMS4zwDAYefDfkidEP1mF39QXTE
-//    ADMIN_SECRET        = (strong password — same in supabase.js)
-//    SUPABASE_URL        = https://gyocbotkhoymkjbegkqz.supabase.co
+//    GITHUB_TOKEN         = ghp_xxxx (PAT: Contents read+write on eliitoze/website)
+//    VAPID_PRIVATE_KEY    = (your VAPID private key)
+//    VAPID_PUBLIC_KEY     = BM9NNO-...
+//    ADMIN_SECRET         = (strong password — same in supabase.js)
+//    SUPABASE_URL         = https://gyocbotkhoymkjbegkqz.supabase.co
 //    SUPABASE_SERVICE_KEY = (Supabase Dashboard → Settings → API → service_role key)
 // ════════════════════════════════════════════════════════════════════
 
@@ -39,12 +39,24 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
     if (request.method !== 'POST')   return json({ error: 'POST only' }, 405);
 
-    // Auth
-    const secret = request.headers.get('X-Admin-Secret');
-    if (!secret || secret !== env.ADMIN_SECRET) return json({ error: 'Unauthorized' }, 401);
-
     const url      = new URL(request.url);
     const pathname = url.pathname;
+
+    // ── Push subscription upsert — no auth needed (public browsers) ──
+    if (pathname.endsWith('/db-write')) {
+      let peek;
+      try { peek = await request.clone().json(); } catch { peek = {}; }
+      if (peek.table === 'push_subscriptions' && peek.operation === 'upsert') {
+        return handleDbWrite(request, env);
+      }
+      if (peek.table === 'likes') {
+        return handleDbWrite(request, env);
+      }
+    }
+
+    // Auth for all other routes
+    const secret = request.headers.get('X-Admin-Secret');
+    if (!secret || secret !== env.ADMIN_SECRET) return json({ error: 'Unauthorized' }, 401);
 
     // ── Route: /upload-media ────────────────────────────────────────
     if (pathname.endsWith('/upload-media')) {
@@ -178,23 +190,31 @@ async function buildVapidJWT(endpoint, privB64, pubB64) {
   }));
   const unsigned = `${header}.${claims}`;
 
-  // Import raw VAPID private key (32-byte P-256 scalar)
-  const rawPriv = b64ToBytes(privB64);
-
-  // Build JWK from raw private key + public key
-  const rawPub = b64ToBytes(pubB64);
-  const jwk = {
-    kty: 'EC', crv: 'P-256',
-    d:   bytesToB64url(rawPriv),
-    x:   bytesToB64url(rawPub.slice(1, 33)),
-    y:   bytesToB64url(rawPub.slice(33, 65)),
-  };
-
-  const privKey = await crypto.subtle.importKey(
-    'jwk', jwk,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false, ['sign']
-  );
+  // Auto-detect VAPID private key format: pkcs8 (~138 bytes) or raw (32 bytes)
+  const keyBytes = b64ToBytes(privB64);
+  let privKey;
+  if (keyBytes.length > 40) {
+    // PKCS8 format — import directly
+    privKey = await crypto.subtle.importKey(
+      'pkcs8', keyBytes.buffer,
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      false, ['sign']
+    );
+  } else {
+    // Raw 32-byte scalar — build JWK
+    const rawPub = b64ToBytes(pubB64);
+    const jwk = {
+      kty: 'EC', crv: 'P-256',
+      d:   bytesToB64url(keyBytes),
+      x:   bytesToB64url(rawPub.slice(1, 33)),
+      y:   bytesToB64url(rawPub.slice(33, 65)),
+    };
+    privKey = await crypto.subtle.importKey(
+      'jwk', jwk,
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      false, ['sign']
+    );
+  }
 
   const sig = await crypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' },
@@ -302,71 +322,207 @@ function b64ToBytes(b64)       {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  DB WRITE — Supabase REST API (service_role key — RLS bypass)
-//  Supports: insert / update / delete on 'products' table
+//  DB WRITE — GitHub JSON files (products + settings) + Supabase (push only)
+//
+//  products / settings → GitHub JSON file read+write (zero Supabase egress)
+//  push_subscriptions  → Supabase REST (tiny text data only)
+//
+//  Supported operations:
+//    insert / update / delete / upsert  on table: products
+//    upsert                             on table: settings
+//    upsert / select                    on table: push_subscriptions (Supabase)
 // ═══════════════════════════════════════════════════════════════════
 
 async function handleDbWrite(request, env) {
-  const sbUrl = env.SUPABASE_URL;
-  const sbKey = env.SUPABASE_SERVICE_KEY;
-
-  if (!sbUrl || !sbKey) {
-    return json({ error: 'SUPABASE_URL or SUPABASE_SERVICE_KEY not set in Worker env' }, 500);
-  }
-
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
 
   const { operation, table, data, match } = body;
-  // operation: 'insert' | 'update' | 'delete'
-  // table: 'products' (whitelist only)
-  // data: row object (for insert/update)
-  // match: { id: 123 } (for update/delete)
 
-  const ALLOWED_TABLES = ['products'];
-  if (!ALLOWED_TABLES.includes(table)) {
-    return json({ error: 'Table not allowed: ' + table }, 400);
+  // ── push_subscriptions → Supabase ────────────────────────────────
+  if (table === 'push_subscriptions') {
+    return handlePushSubscription(operation, data, env);
   }
 
-  const baseUrl = sbUrl.replace(/\/$/, '') + '/rest/v1/' + table;
+  // ── products / settings → GitHub JSON ────────────────────────────
+  if (table === 'products') {
+    return handleProductsWrite(operation, data, match, env);
+  }
+
+  if (table === 'settings') {
+    return handleSettingsWrite(data, env);
+  }
+
+  if (table === 'likes') {
+    return handleLikesWrite(operation, data, env);
+  }
+
+  return json({ error: 'Unknown table: ' + table }, 400);
+}
+
+// ── GitHub JSON helper: read file ────────────────────────────────
+async function ghReadJson(path, env) {
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`;
+  const res = await fetch(url, {
+    headers: {
+      'Authorization': 'token ' + env.GITHUB_TOKEN,
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'Eliitoze-Worker'
+    }
+  });
+  if (!res.ok) {
+    if (res.status === 404) return { data: null, sha: null };
+    throw new Error('GitHub read failed: ' + res.status);
+  }
+  const file = await res.json();
+  const content = atob(file.content.replace(/\n/g, ''));
+  return { data: JSON.parse(content), sha: file.sha };
+}
+
+// ── GitHub JSON helper: write file ───────────────────────────────
+async function ghWriteJson(path, data, sha, env) {
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
+  const body = {
+    message: 'Update ' + path,
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+    branch: GITHUB_BRANCH
+  };
+  if (sha) body.sha = sha;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'token ' + env.GITHUB_TOKEN,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'Eliitoze-Worker'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error('GitHub write failed: ' + (err.message || res.status));
+  }
+  return await res.json();
+}
+
+// ── Products JSON write ──────────────────────────────────────────
+async function handleProductsWrite(operation, data, match, env) {
+  try {
+    const PATH = 'data/products.json';
+    const { data: products, sha } = await ghReadJson(PATH, env);
+    let list = Array.isArray(products) ? products : [];
+
+    if (operation === '_init_products') {
+      // Bulk init from migration — write entire array as-is
+      const initList = Array.isArray(data) ? data : [];
+      await ghWriteJson(PATH, initList, sha, env);
+      return json({ success: true, count: initList.length });
+    }
+
+    if (operation === 'insert') {
+      // Auto-generate id
+      const maxId = list.reduce((m, p) => Math.max(m, p.id || 0), 0);
+      const newProduct = { id: maxId + 1, ...data };
+      list.unshift(newProduct); // newest first
+      await ghWriteJson(PATH, list, sha, env);
+      return json({ success: true, data: newProduct });
+
+    } else if (operation === 'update') {
+      if (!match || !match.id) return json({ error: 'match.id required' }, 400);
+      const idx = list.findIndex(p => p.id === match.id);
+      if (idx === -1) return json({ error: 'Product not found: ' + match.id }, 404);
+      list[idx] = { ...list[idx], ...data };
+      await ghWriteJson(PATH, list, sha, env);
+      return json({ success: true, data: list[idx] });
+
+    } else if (operation === 'delete') {
+      if (!match || !match.id) return json({ error: 'match.id required' }, 400);
+      const before = list.length;
+      list = list.filter(p => p.id !== match.id);
+      if (list.length === before) return json({ error: 'Product not found: ' + match.id }, 404);
+      await ghWriteJson(PATH, list, sha, env);
+      return json({ success: true });
+
+    } else {
+      return json({ error: 'operation must be insert | update | delete' }, 400);
+    }
+  } catch (err) {
+    return json({ error: err.message }, 500);
+  }
+}
+
+// ── Settings JSON write ──────────────────────────────────────────
+async function handleSettingsWrite(data, env) {
+  try {
+    const PATH = 'data/settings.json';
+    const { data: existing, sha } = await ghReadJson(PATH, env);
+    const settings = existing || {};
+    const updated = { ...settings, ...data };
+    await ghWriteJson(PATH, updated, sha, env);
+    return json({ success: true });
+  } catch (err) {
+    return json({ error: err.message }, 500);
+  }
+}
+
+// ── Likes → GitHub JSON ─────────────────────────────────────────
+async function handleLikesWrite(operation, data, env) {
+  try {
+    const PATH = 'data/likes.json';
+    const { data: existing, sha } = await ghReadJson(PATH, env);
+    const likes = (existing && typeof existing === 'object') ? existing : {};
+
+    if (operation === 'like' || operation === 'unlike') {
+      const id = String(data.id);
+      const delta = data.delta || (operation === 'like' ? 1 : -1);
+      likes[id] = Math.max(0, (likes[id] || 0) + delta);
+      await ghWriteJson(PATH, likes, sha, env);
+      return json({ success: true, count: likes[id] });
+    }
+
+    if (operation === 'select') {
+      return json({ success: true, data: likes });
+    }
+
+    return json({ error: 'likes supports like | unlike | select' }, 400);
+  } catch(err) {
+    return json({ error: err.message }, 500);
+  }
+}
+
+// ── Push subscriptions → Supabase ───────────────────────────────
+async function handlePushSubscription(operation, data, env) {
+  const sbUrl = env.SUPABASE_URL;
+  const sbKey = env.SUPABASE_SERVICE_KEY;
+  if (!sbUrl || !sbKey) return json({ error: 'Supabase env not configured' }, 500);
+
+  const baseUrl = sbUrl.replace(/\/$/, '') + '/rest/v1/push_subscriptions';
   const headers = {
-    'apikey':        sbKey,
+    'apikey': sbKey,
     'Authorization': 'Bearer ' + sbKey,
-    'Content-Type':  'application/json',
-    'Prefer':        'return=representation'
+    'Content-Type': 'application/json',
+    'Prefer': 'resolution=merge-duplicates,return=minimal'
   };
 
-  let apiUrl = baseUrl;
-  let method;
-  let bodyStr;
+  if (operation === 'upsert') {
+    const res = await fetch(baseUrl + '?on_conflict=endpoint', {
+      method: 'POST', headers, body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return json({ error: err.message || 'Supabase upsert failed' }, res.status);
+    }
+    return json({ success: true });
 
-  if (operation === 'insert') {
-    method  = 'POST';
-    bodyStr = JSON.stringify(data);
-
-  } else if (operation === 'update') {
-    if (!match || !match.id) return json({ error: 'match.id required for update' }, 400);
-    apiUrl  = baseUrl + '?id=eq.' + match.id;
-    method  = 'PATCH';
-    bodyStr = JSON.stringify(data);
-
-  } else if (operation === 'delete') {
-    if (!match || !match.id) return json({ error: 'match.id required for delete' }, 400);
-    apiUrl  = baseUrl + '?id=eq.' + match.id;
-    method  = 'DELETE';
-    headers['Prefer'] = 'return=minimal';
+  } else if (operation === 'select') {
+    const res = await fetch(baseUrl + '?select=endpoint,p256dh,auth', {
+      headers: { ...headers, 'Prefer': 'return=representation' }
+    });
+    if (!res.ok) return json({ error: 'Supabase select failed: ' + res.status }, res.status);
+    const rows = await res.json();
+    return json({ success: true, data: rows });
 
   } else {
-    return json({ error: 'operation must be insert | update | delete' }, 400);
+    return json({ error: 'push_subscriptions supports upsert | select' }, 400);
   }
-
-  const resp = await fetch(apiUrl, { method, headers, body: bodyStr });
-
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    return json({ error: err.message || 'Supabase error: ' + resp.status }, resp.status);
-  }
-
-  const result = operation === 'delete' ? { success: true } : await resp.json().catch(() => ({}));
-  return json({ success: true, data: result });
 }

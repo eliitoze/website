@@ -1139,3 +1139,85 @@ footer a { color: var(--gold-dark); text-decoration: none; }
   100% { box-shadow:0 0 0 0 rgba(212,175,55,0); }
 }
 .product-highlight { animation:highlightPulse 1s ease 3; border:1px solid var(--gold) !important; }
+
+/* ─── PRODUCT ACTION BAR (Like + WhatsApp) ─── */
+.product-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.btn-like, .btn-wa-share {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+.btn-like:hover { border-color: #e05080; color: #e05080; }
+.btn-like.liked { border-color: #e05080; color: #e05080; background: rgba(224,80,128,0.08); }
+.btn-like .like-count { font-size: 10px; opacity: 0.8; }
+.btn-wa-share:hover { border-color: #25D366; color: #25D366; }
+.btn-wa-share svg { width: 13px; height: 13px; fill: currentColor; }
+
+/* ─── SUBCAT PILLS — horizontal scroll ─── */
+.subcat-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex-wrap: nowrap !important;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.subcat-pills::-webkit-scrollbar { display: none; }
+.subcat-pill { white-space: nowrap; flex-shrink: 0; }
+
+/* ─── CAT TABS — 4 categories ─── */
+.cat-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tab { white-space: nowrap; flex-shrink: 0; }
+
+/* ─── ADMIN SUBCATEGORY MANAGER ─── */
+.subcat-manager { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.subcat-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  padding: 8px 12px; border-radius: 2px;
+}
+.subcat-item input {
+  flex: 1; background: transparent; border: none;
+  color: var(--text); font-family: inherit; font-size: 13px;
+  outline: none;
+}
+.subcat-item input:focus { border-bottom: 1px solid var(--gold); }
+.btn-subcat-del {
+  background: transparent; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 16px; padding: 0 4px;
+  transition: color 0.2s;
+}
+.btn-subcat-del:hover { color: var(--red); }
+.btn-subcat-add {
+  background: transparent; border: 1px dashed var(--border);
+  color: var(--text-muted); padding: 10px; font-family: inherit;
+  font-size: 11px; letter-spacing: 2px; cursor: pointer;
+  transition: all 0.2s; text-transform: uppercase;
+}
+.btn-subcat-add:hover { border-color: var(--gold); color: var(--gold); }
