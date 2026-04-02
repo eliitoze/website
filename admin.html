@@ -7,177 +7,54 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* ── Push Notification Panel ── */
-    .notif-status-bar {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 14px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      margin-bottom: 20px;
-      font-size: 11px;
-      letter-spacing: 1px;
-      color: var(--text-muted);
-    }
-    .notif-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--text-dim); flex-shrink: 0;
-    }
-    .notif-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
-    .notif-dot.denied { background: var(--red); }
-    .subscriber-count {
-      margin-left: auto;
-      font-size: 10px;
-      color: var(--text-dim);
-      letter-spacing: 2px;
-    }
+    .notif-status-bar { display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;margin-bottom:20px;font-size:11px;letter-spacing:1px;color:var(--text-muted); }
+    .notif-dot { width:8px;height:8px;border-radius:50%;background:var(--text-dim);flex-shrink:0; }
+    .notif-dot.active { background:var(--green);box-shadow:0 0 6px var(--green); }
+    .notif-dot.denied { background:var(--red); }
+    .subscriber-count { margin-left:auto;font-size:10px;color:var(--text-dim);letter-spacing:2px; }
+    .edit-toolbar { display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--border);margin-bottom:20px; }
+    .edit-toolbar .sel-count { font-size:11px;letter-spacing:2px;color:var(--text-muted);margin-right:auto; }
+    .btn-bulk-edit { background:transparent;border:1px solid var(--gold-dark);color:var(--gold);padding:8px 18px;font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s; }
+    .btn-bulk-edit:hover { background:var(--gold);color:var(--bg); }
+    .btn-bulk-edit:disabled { opacity:.4;cursor:not-allowed; }
+    .btn-bulk-delete { background:transparent;border:1px solid transparent;color:var(--text-dim);padding:8px 14px;font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s; }
+    .btn-bulk-delete:hover { color:var(--red);border-color:var(--red); }
+    .btn-bulk-delete:disabled { opacity:.4;cursor:not-allowed; }
+    .edit-product-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px; }
+    .edit-product-card { background:var(--surface);border:1px solid var(--border);padding:14px;position:relative;cursor:pointer;transition:border-color .2s; }
+    .edit-product-card.selected { border-color:var(--gold);background:rgba(201,168,76,0.04); }
+    .edit-product-card .card-check { position:absolute;top:10px;right:10px;width:18px;height:18px;border:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gold);transition:all .2s; }
+    .edit-product-card.selected .card-check { background:var(--gold);color:var(--bg);border-color:var(--gold); }
+    .edit-product-card img { width:100%;height:120px;object-fit:cover;background:var(--bg3);display:block;margin-bottom:10px; }
+    .edit-card-name { font-size:12px;letter-spacing:1px;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .edit-card-meta { font-size:10px;color:var(--text-muted);letter-spacing:1px; }
+    .bulk-modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;align-items:center;justify-content:center;padding:20px; }
+    .bulk-modal-overlay.open { display:flex; }
+    .bulk-modal { background:var(--bg2);border:1px solid var(--border);width:100%;max-width:540px;max-height:90vh;overflow-y:auto;padding:28px;position:relative; }
+    .bulk-modal-title { font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;margin-bottom:6px;color:var(--text); }
+    .bulk-modal-sub { font-size:10px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:24px; }
+    .bulk-modal-close { position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;line-height:1; }
+    .bulk-modal-close:hover { color:var(--text); }
+    .bulk-field-note { font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-top:4px; }
+    .modal-actions { display:flex;gap:12px;margin-top:24px; }
+    .select-all-row { display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:12px;font-size:11px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;cursor:pointer;user-select:none; }
+    .select-all-row input[type=checkbox] { accent-color:var(--gold);width:15px;height:15px; }
+    .media-preview-row { display:flex;gap:10px;margin-top:10px;flex-wrap:wrap; }
+    .media-preview-thumb { width:60px;height:60px;object-fit:cover;border:1px solid var(--border);background:var(--bg3); }
 
-    /* ── Edit Products Panel ── */
-    .edit-toolbar {
-      display: flex; align-items: center; gap: 12px;
-      flex-wrap: wrap;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-    .edit-toolbar .sel-count {
-      font-size: 11px; letter-spacing: 2px; color: var(--text-muted);
-      margin-right: auto;
-    }
-    .btn-bulk-edit {
-      background: transparent;
-      border: 1px solid var(--gold-dark);
-      color: var(--gold);
-      padding: 8px 18px;
-      font-family: 'Montserrat', sans-serif;
-      font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
-      cursor: pointer; transition: all .2s;
-    }
-    .btn-bulk-edit:hover { background: var(--gold); color: var(--bg); }
-    .btn-bulk-edit:disabled { opacity: .4; cursor: not-allowed; }
-    .btn-bulk-delete {
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-dim);
-      padding: 8px 14px;
-      font-family: 'Montserrat', sans-serif;
-      font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
-      cursor: pointer; transition: all .2s;
-    }
-    .btn-bulk-delete:hover { color: var(--red); border-color: var(--red); }
-    .btn-bulk-delete:disabled { opacity: .4; cursor: not-allowed; }
-
-    .edit-product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .edit-product-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 14px;
-      position: relative;
-      cursor: pointer;
-      transition: border-color .2s;
-    }
-    .edit-product-card.selected {
-      border-color: var(--gold);
-      background: rgba(201,168,76,0.04);
-    }
-    .edit-product-card .card-check {
-      position: absolute; top: 10px; right: 10px;
-      width: 18px; height: 18px;
-      border: 1px solid var(--border);
-      background: var(--bg3);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; color: var(--gold);
-      transition: all .2s;
-    }
-    .edit-product-card.selected .card-check {
-      background: var(--gold); color: var(--bg); border-color: var(--gold);
-    }
-    .edit-product-card img {
-      width: 100%; height: 120px; object-fit: cover;
-      background: var(--bg3); display: block; margin-bottom: 10px;
-    }
-    .edit-card-name {
-      font-size: 12px; letter-spacing: 1px;
-      color: var(--text); margin-bottom: 4px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .edit-card-meta {
-      font-size: 10px; color: var(--text-muted); letter-spacing: 1px;
-    }
-
-    /* ── Bulk Edit Modal ── */
-    .bulk-modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.85); z-index: 999;
-      align-items: center; justify-content: center;
-      padding: 20px;
-    }
-    .bulk-modal-overlay.open { display: flex; }
-    .bulk-modal {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      width: 100%; max-width: 540px;
-      max-height: 90vh; overflow-y: auto;
-      padding: 28px;
-      position: relative;
-    }
-    .bulk-modal-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 22px; font-weight: 400;
-      margin-bottom: 6px;
-      color: var(--text);
-    }
-    .bulk-modal-sub {
-      font-size: 10px; color: var(--text-muted);
-      letter-spacing: 2px; text-transform: uppercase;
-      margin-bottom: 24px;
-    }
-    .bulk-modal-close {
-      position: absolute; top: 16px; right: 16px;
-      background: none; border: none; color: var(--text-dim);
-      font-size: 18px; cursor: pointer; line-height: 1;
-    }
-    .bulk-modal-close:hover { color: var(--text); }
-    .bulk-field-note {
-      font-size: 10px; color: var(--text-muted);
-      letter-spacing: 1px; margin-top: 4px;
-    }
-    .modal-actions {
-      display: flex; gap: 12px; margin-top: 24px;
-    }
-
-    /* Select all checkbox */
-    .select-all-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 0; margin-bottom: 12px;
-      font-size: 11px; letter-spacing: 2px; color: var(--text-muted);
-      text-transform: uppercase; cursor: pointer;
-      user-select: none;
-    }
-    .select-all-row input[type=checkbox] { accent-color: var(--gold); width: 15px; height: 15px; }
-
-    /* media preview in modal */
-    .media-preview-row {
-      display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;
-    }
-    .media-preview-thumb {
-      width: 60px; height: 60px; object-fit: cover;
-      border: 1px solid var(--border); background: var(--bg3);
-    }
+    /* New Arrivals Manager */
+    .new-arrival-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px; }
+    .na-card { background:var(--surface);border:1px solid var(--border);padding:10px;cursor:pointer;transition:border-color .2s;position:relative; }
+    .na-card.selected { border-color:var(--gold);background:rgba(201,168,76,0.06); }
+    .na-card img { width:100%;height:90px;object-fit:cover;display:block;margin-bottom:6px; }
+    .na-card-name { font-size:10px;letter-spacing:1px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+    .na-badge { position:absolute;top:6px;left:6px;background:var(--gold);color:#000;font-size:8px;letter-spacing:1px;padding:2px 6px;font-weight:700; }
   </style>
 </head>
 <body>
 
-<!-- Auth guard -->
 <script>
-  if (!sessionStorage.getItem('eliitoze_admin')) {
-    window.location.href = 'login.html';
-  }
+  if (!sessionStorage.getItem('eliitoze_admin')) window.location.href = 'login.html';
 </script>
 
 <header class="site-header">
@@ -189,20 +66,18 @@
 </header>
 
 <div class="admin-layout">
-
-  <!-- Sidebar -->
   <aside class="admin-sidebar">
     <div class="sidebar-section">Menu</div>
-    <button class="sidebar-link active" onclick="showPanel('dashboard', this)">📊 Dashboard</button>
-    <button class="sidebar-link" onclick="showPanel('add-product', this)">➕ Add Product</button>
-    <button class="sidebar-link" onclick="showPanel('manage', this)">📦 Manage Products</button>
-    <button class="sidebar-link" onclick="showPanel('edit-products', this)">✏️ Edit Products</button>
-    <button class="sidebar-link" onclick="showPanel('categories', this)">🏷️ Categories</button>
-    <button class="sidebar-link" onclick="showPanel('notice', this)">📢 Notice Banner</button>
-    <button class="sidebar-link" onclick="showPanel('push-notifications', this)">🔔 Push Notifications</button>
+    <button class="sidebar-link active" onclick="showPanel('dashboard',this)">📊 Dashboard</button>
+    <button class="sidebar-link" onclick="showPanel('add-product',this)">➕ Add Product</button>
+    <button class="sidebar-link" onclick="showPanel('manage',this)">📦 Manage Products</button>
+    <button class="sidebar-link" onclick="showPanel('edit-products',this)">✏️ Edit Products</button>
+    <button class="sidebar-link" onclick="showPanel('categories',this)">🏷️ Categories</button>
+    <button class="sidebar-link" onclick="showPanel('new-arrivals',this)">✨ New Arrivals</button>
+    <button class="sidebar-link" onclick="showPanel('notice',this)">📢 Notice Banner</button>
+    <button class="sidebar-link" onclick="showPanel('push-notifications',this)">🔔 Push Notifications</button>
   </aside>
 
-  <!-- Main -->
   <main class="admin-content">
 
     <!-- Dashboard -->
@@ -241,23 +116,32 @@
           <label class="form-label">Quantity *</label>
           <input class="form-input" type="number" id="p-qty" placeholder="10" min="0" />
         </div>
+
+        <!-- 3-level Category -->
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Category *</label>
-            <select class="form-input" id="p-category">
+            <label class="form-label">Main Category *</label>
+            <select class="form-input" id="p-category" onchange="onCategoryChange()">
               <option value="Sterling Silver 925">Sterling Silver 925</option>
               <option value="Imitation Jewellery">Imitation Jewellery</option>
-              <option value="Men Jewellery">Men Jewellery</option>
-              <option value="Women Jewellery">Women Jewellery</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Sub Category</label>
-            <select class="form-input" id="p-subcategory">
-              <option value="">— Select —</option>
+            <label class="form-label">Gender *</label>
+            <select class="form-input" id="p-gender" onchange="buildSubcatSelectByGender('p-subcategory')">
+              <option value="Women">Women</option>
+              <option value="Men">Men</option>
+              <option value="Unisex">Unisex</option>
             </select>
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label">Item Type (Sub Category)</label>
+          <select class="form-input" id="p-subcategory">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+
         <div class="form-group">
           <label class="form-label">Description (Optional)</label>
           <textarea class="form-input" id="p-description" rows="2" placeholder="e.g. 92.5 sterling silver, handcrafted, oxidised finish..." style="resize:vertical;min-height:60px;"></textarea>
@@ -276,9 +160,7 @@
           <div class="status-msg" id="img-status"></div>
         </div>
         <div class="form-group">
-          <label class="form-label">Product Video (Optional)
-            <span style="color:var(--text-muted);font-size:10px;font-weight:normal;"> — Badha products ne same video lagse</span>
-          </label>
+          <label class="form-label">Product Video (Optional)</label>
           <div class="upload-area" id="vid-upload-area">
             <input type="file" id="p-video" accept="video/*" />
             <div class="upload-icon">🎬</div>
@@ -293,27 +175,53 @@
       </div>
     </div>
 
-    <!-- Notice Banner -->
+    <!-- Categories Panel -->
     <div class="admin-panel" id="panel-categories">
-      <div class="panel-title">Categories &amp; Sub-Categories</div>
+      <div class="panel-title">Categories &amp; Item Types</div>
+
       <div class="form-group">
         <label class="form-label">Main Categories (Fixed)</label>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
           <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">✦ Sterling Silver 925</span>
           <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">◈ Imitation Jewellery</span>
-          <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">♦ Men Jewellery</span>
-          <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">❋ Women Jewellery</span>
         </div>
       </div>
+
       <div class="form-group">
-        <label class="form-label">Sub-Categories (Manage)</label>
-        <div class="subcat-manager" id="subcat-manager"></div>
-        <button class="btn-subcat-add" onclick="addSubcatRow()">+ Add Sub-Category</button>
+        <label class="form-label">Gender Sub-Categories (Fixed)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+          <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">👩 Women</span>
+          <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">👨 Men</span>
+          <span style="background:var(--bg3);border:1px solid var(--border);padding:6px 14px;font-size:11px;letter-spacing:1px;color:var(--gold);">✦ Unisex</span>
+        </div>
       </div>
-      <button class="btn-submit" onclick="saveSubcategories()" style="margin-top:16px;">Save Sub-Categories</button>
+
+      <div class="form-group">
+        <label class="form-label">Item Types (Manage) — Ring, Necklace, etc.</label>
+        <div class="subcat-manager" id="subcat-manager"></div>
+        <button class="btn-subcat-add" onclick="addSubcatRow()">+ Add Item Type</button>
+      </div>
+      <button class="btn-submit" onclick="saveSubcategories()" style="margin-top:16px;">💾 Save Item Types</button>
       <div class="status-msg" id="subcat-save-status" style="margin-top:10px;font-size:12px;"></div>
     </div>
 
+    <!-- ✨ New Arrivals Manager -->
+    <div class="admin-panel" id="panel-new-arrivals">
+      <div class="panel-title">✨ New Arrivals</div>
+      <p style="font-size:12px;color:var(--text-muted);letter-spacing:1px;margin-bottom:16px;">
+        Products select karo jo "New Arrivals" tab ma dikhava joiye. Selected products homepage par top par dekhase.
+      </p>
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;">
+        <span style="font-size:11px;color:var(--text-muted);letter-spacing:1px;" id="na-sel-count">0 selected</span>
+        <button class="btn-submit" onclick="saveNewArrivals()" style="padding:10px 24px;">💾 Save New Arrivals</button>
+      </div>
+      <div class="status-msg" id="na-save-status" style="margin-bottom:12px;font-size:12px;"></div>
+      <div class="new-arrival-grid" id="na-grid">
+        <p style="color:var(--text-muted);font-size:12px;">Loading products...</p>
+      </div>
+    </div>
+
+    <!-- Notice Banner -->
     <div class="admin-panel" id="panel-notice">
       <div class="panel-title">Notice Banner</div>
       <div class="admin-form">
@@ -330,7 +238,6 @@
         <div class="form-group">
           <label class="form-label">Banner Message *</label>
           <input class="form-input" type="text" id="notice-text" placeholder="e.g. 🎉 20% extra discount on all orders above ₹2000!" oninput="toggleNoticePreview()" />
-          <div style="font-size:10px;color:var(--text-muted);margin-top:6px;letter-spacing:1px;">Emoji pan use kari shakay chho ✨</div>
         </div>
         <div class="form-group">
           <label class="form-label">Banner Color</label>
@@ -359,76 +266,48 @@
       </div>
     </div>
 
-    <!-- ════════════════════════════════════════
-         EDIT PRODUCTS PANEL
-    ════════════════════════════════════════ -->
+    <!-- Edit Products -->
     <div class="admin-panel" id="panel-edit-products">
       <div class="panel-title">Edit Products</div>
-
-      <!-- Toolbar -->
       <div class="edit-toolbar">
         <span class="sel-count" id="edit-sel-count">0 selected</span>
         <button class="btn-bulk-edit" id="btn-open-bulk-edit" onclick="openBulkEditModal()" disabled>✏️ Edit Selected</button>
         <button class="btn-bulk-delete" id="btn-bulk-delete" onclick="bulkDeleteProducts()" disabled>✕ Delete Selected</button>
       </div>
-
-      <!-- Select all -->
       <label class="select-all-row">
         <input type="checkbox" id="edit-select-all" onchange="toggleSelectAll(this)" />
         Select All Products
       </label>
-
-      <!-- Product Grid -->
       <div class="edit-product-grid" id="edit-product-grid">
         <p style="color:var(--text-muted);font-size:12px;">Loading products...</p>
       </div>
-
       <div class="status-msg" id="edit-status" style="margin-top:12px;font-size:12px;"></div>
     </div>
 
-    <!-- ════════════════════════════════════════
-         PUSH NOTIFICATIONS PANEL
-    ════════════════════════════════════════ -->
+    <!-- Push Notifications -->
     <div class="admin-panel" id="panel-push-notifications">
       <div class="panel-title">Push Notifications</div>
-
-      <!-- Status bar -->
       <div class="notif-status-bar">
         <div class="notif-dot" id="notif-permission-dot"></div>
         <span id="notif-permission-label">Checking permission...</span>
         <span class="subscriber-count" id="notif-sub-count">— subscribers</span>
       </div>
-
       <div class="admin-form">
-        <!-- Enable notifications for this device -->
         <div class="form-group">
           <label class="form-label">This Device</label>
-          <button class="btn-submit" id="btn-enable-notif" onclick="subscribeThisDevice()" style="margin-top:8px;">
-            🔔 Enable Notifications on This Device
-          </button>
+          <button class="btn-submit" id="btn-enable-notif" onclick="subscribeThisDevice()" style="margin-top:8px;">🔔 Enable Notifications on This Device</button>
           <div class="status-msg" id="notif-sub-status" style="margin-top:8px;font-size:12px;"></div>
         </div>
-
         <div style="border-top:1px solid var(--border);margin:24px 0;"></div>
-
-        <!-- Send Notification Form -->
         <div class="form-group">
           <label class="form-label">Notification Title *</label>
           <input class="form-input" type="text" id="notif-title" placeholder="e.g. New Collection Arrived! ✨" />
         </div>
-
         <div class="form-group">
           <label class="form-label">Notification Message *</label>
-          <textarea class="form-input" id="notif-body" rows="3" placeholder="e.g. Check out our latest gold kundan necklace sets. Limited stock!" style="resize:vertical;"></textarea>
+          <textarea class="form-input" id="notif-body" rows="3" style="resize:vertical;" placeholder="e.g. Check out our latest gold kundan necklace sets. Limited stock!"></textarea>
         </div>
-
-        <div style="font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-bottom:20px;">
-          ℹ️ Notification click karva thi website open thashe. Icon automatically website logo use thase.
-        </div>
-
-        <button class="btn-submit" id="btn-send-notif" onclick="sendPushNotification()">
-          📤 Send to All Subscribers
-        </button>
+        <button class="btn-submit" id="btn-send-notif" onclick="sendPushNotification()">📤 Send to All Subscribers</button>
         <div class="status-msg" id="notif-send-status" style="margin-top:12px;font-size:12px;"></div>
       </div>
     </div>
@@ -436,40 +315,42 @@
   </main>
 </div>
 
-<!-- ════════════════════════════════════════
-     BULK EDIT MODAL
-════════════════════════════════════════ -->
+<!-- Bulk Edit Modal -->
 <div class="bulk-modal-overlay" id="bulk-modal-overlay">
   <div class="bulk-modal">
     <button class="bulk-modal-close" onclick="closeBulkEditModal()">✕</button>
     <div class="bulk-modal-title">Edit Selected Products</div>
     <div class="bulk-modal-sub" id="bulk-modal-sub">0 products selected</div>
-
     <div class="form-group">
       <label class="form-label">Product Name</label>
       <input class="form-input" type="text" id="bulk-name" placeholder="Leave blank to keep existing" />
       <div class="bulk-field-note">Khali chhodo to change nahi thashe</div>
     </div>
-
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Category</label>
+        <label class="form-label">Main Category</label>
         <select class="form-input" id="bulk-category">
           <option value="">— Keep existing —</option>
           <option value="Sterling Silver 925">Sterling Silver 925</option>
           <option value="Imitation Jewellery">Imitation Jewellery</option>
-          <option value="Men Jewellery">Men Jewellery</option>
-          <option value="Women Jewellery">Women Jewellery</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Sub Category</label>
-        <select class="form-input" id="bulk-subcategory">
+        <label class="form-label">Gender</label>
+        <select class="form-input" id="bulk-gender">
           <option value="">— Keep existing —</option>
+          <option value="Women">Women</option>
+          <option value="Men">Men</option>
+          <option value="Unisex">Unisex</option>
         </select>
       </div>
     </div>
-
+    <div class="form-group">
+      <label class="form-label">Item Type</label>
+      <select class="form-input" id="bulk-subcategory">
+        <option value="">— Keep existing —</option>
+      </select>
+    </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Price (₹)</label>
@@ -480,12 +361,10 @@
         <input class="form-input" type="number" id="bulk-dprice" placeholder="Leave blank to keep" min="0" />
       </div>
     </div>
-
     <div class="form-group">
       <label class="form-label">Quantity</label>
       <input class="form-input" type="number" id="bulk-qty" placeholder="Leave blank to keep" min="0" />
     </div>
-
     <div class="form-group">
       <label class="form-label">Replace Product Image</label>
       <div class="upload-area" style="cursor:pointer;" onclick="document.getElementById('bulk-img-file').click()">
@@ -496,7 +375,6 @@
       </div>
       <div id="bulk-img-preview" class="media-preview-row"></div>
     </div>
-
     <div class="form-group">
       <label class="form-label">Replace Product Video</label>
       <div class="upload-area" style="cursor:pointer;" onclick="document.getElementById('bulk-vid-file').click()">
@@ -507,9 +385,7 @@
       </div>
       <div id="bulk-vid-preview" class="media-preview-row"></div>
     </div>
-
     <div class="status-msg" id="bulk-edit-status" style="margin-top:12px;font-size:12px;"></div>
-
     <div class="modal-actions">
       <button class="btn-submit" id="btn-bulk-update" onclick="applyBulkEdit()">✓ Update All Selected</button>
       <button class="btn-bulk-edit" onclick="closeBulkEditModal()">Cancel</button>
@@ -523,9 +399,6 @@
 const sb = window.sb;
 const BUCKET = window.MEDIA_BUCKET;
 
-// ════════════════════════════════════════
-//  GENERAL
-// ════════════════════════════════════════
 function logout() {
   sessionStorage.removeItem('eliitoze_admin');
   window.location.href = 'login.html';
@@ -537,14 +410,15 @@ function showPanel(name, btn) {
   document.getElementById('panel-' + name).classList.add('active');
   btn.classList.add('active');
   if (name === 'manage') loadManageTable();
-  if (name === 'dashboard') loadStats();
+  if (name === 'dashboard') { loadStats(); loadLikeStats(); }
   if (name === 'notice') loadNoticeSettings();
   if (name === 'edit-products') loadEditProducts();
   if (name === 'push-notifications') initNotifPanel();
   if (name === 'categories') loadSubcatManager();
-  if (name === 'dashboard') loadLikeStats();
+  if (name === 'new-arrivals') loadNewArrivalsPanel();
 }
 
+// ════════════════ STATS ════════════════
 async function loadStats() {
   try {
     const res = await fetch('../data/products.json?v=' + Date.now());
@@ -557,31 +431,25 @@ async function loadStats() {
     document.getElementById('stat-video').textContent = data.filter(p => p.video_url).length;
   } catch(e) {}
 }
-loadStats();
-loadSubcatManager();
-
-// ── Load Like Stats for Dashboard
 async function loadLikeStats() {
   try {
     const res = await fetch('../data/likes.json?v=' + Date.now());
     if (!res.ok) return;
     const likes = await res.json();
-    const total = Object.values(likes).reduce((s, v) => s + (v || 0), 0);
+    const total = Object.values(likes).reduce((s,v) => s+(v||0), 0);
     document.getElementById('stat-likes').textContent = total;
-    // Most liked product
     const maxId = Object.entries(likes).sort((a,b) => b[1]-a[1])[0];
     if (maxId) {
       const prodRes = await fetch('../data/products.json?v=' + Date.now());
-      const prods = await prodRes.json().catch(() => []);
+      const prods = await prodRes.json().catch(()=>[]);
       const prod = prods.find(p => String(p.id) === String(maxId[0]));
-      document.getElementById('stat-shares').textContent = prod ? prod.name.slice(0,12) + (prod.name.length > 12 ? '…' : '') + ' (' + maxId[1] + ')' : maxId[1];
-    } else {
-      document.getElementById('stat-shares').textContent = '—';
-    }
+      document.getElementById('stat-shares').textContent = prod ? prod.name.slice(0,12)+(prod.name.length>12?'…':'')+' ('+maxId[1]+')' : maxId[1];
+    } else { document.getElementById('stat-shares').textContent = '—'; }
   } catch(e) {}
 }
+loadStats(); loadLikeStats();
 
-// ── Subcategory Manager
+// ════════════════ SUBCATEGORY MANAGER ════════════════
 let subcatList = ['Necklace','Necklace Set','Bracelet','Chain','Ring','Anklet','Earring','Mala','Kada','Pendant','Bangle'];
 
 async function loadSubcatManager() {
@@ -593,14 +461,13 @@ async function loadSubcatManager() {
     }
   } catch(e) {}
   renderSubcatManager();
-  // Also populate subcategory dropdowns
   populateSubcatSelects();
 }
 
 function renderSubcatManager() {
   const mgr = document.getElementById('subcat-manager');
   if (!mgr) return;
-  mgr.innerHTML = subcatList.map((s, i) =>
+  mgr.innerHTML = subcatList.map((s,i) =>
     '<div class="subcat-item">' +
       '<input type="text" value="' + s + '" data-idx="' + i + '" onchange="subcatList[' + i + ']=this.value" />' +
       '<button class="btn-subcat-del" onclick="deleteSubcat(' + i + ')">×</button>' +
@@ -612,23 +479,27 @@ function addSubcatRow() {
   subcatList.push('');
   renderSubcatManager();
   const inputs = document.getElementById('subcat-manager').querySelectorAll('input');
-  inputs[inputs.length - 1].focus();
+  inputs[inputs.length-1].focus();
 }
 
-function deleteSubcat(idx) {
-  subcatList.splice(idx, 1);
-  renderSubcatManager();
-}
+function deleteSubcat(idx) { subcatList.splice(idx,1); renderSubcatManager(); }
 
 function populateSubcatSelects() {
-  ['p-subcategory', 'bulk-subcategory'].forEach(id => {
+  ['p-subcategory','bulk-subcategory'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
-    const firstOpt = sel.options[0].text;
-    const firstVal = sel.options[0].value;
-    sel.innerHTML = '<option value="' + firstVal + '">' + firstOpt + '</option>' +
+    const first = sel.options[0];
+    sel.innerHTML = '<option value="' + first.value + '">' + first.text + '</option>' +
       subcatList.filter(Boolean).map(s => '<option value="' + s + '">' + s + '</option>').join('');
   });
+}
+
+function buildSubcatSelectByGender(selectId) {
+  populateSubcatSelects();
+}
+
+function onCategoryChange() {
+  // Could add category-specific subcats in future
 }
 
 async function saveSubcategories() {
@@ -636,8 +507,16 @@ async function saveSubcategories() {
   renderSubcatManager();
   const statusEl = document.getElementById('subcat-save-status');
   statusEl.textContent = 'Saving...';
+  statusEl.style.color = 'var(--text-muted)';
   try {
-    await dbWrite('upsert', { subcategories: subcatList }, undefined, 'settings');
+    // Load existing settings first
+    let existing = {};
+    try {
+      const r = await fetch('../data/settings.json?v=' + Date.now());
+      if (r.ok) existing = await r.json();
+    } catch(e) {}
+    existing.subcategories = subcatList;
+    await dbWrite('upsert', existing, undefined, 'settings');
     statusEl.textContent = '✅ Saved! Site par reflect thase.';
     statusEl.style.color = 'var(--green)';
     populateSubcatSelects();
@@ -648,12 +527,87 @@ async function saveSubcategories() {
   }
 }
 
-// ── Bulk image preview (add product)
+// ════════════════ NEW ARRIVALS ════════════════
+let naSelectedIds = new Set();
+let naAllProducts = [];
+
+async function loadNewArrivalsPanel() {
+  const grid = document.getElementById('na-grid');
+  grid.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Loading...</p>';
+  naSelectedIds.clear();
+
+  try {
+    // Load current settings for existing new arrivals
+    let currentNA = [];
+    try {
+      const r = await fetch('../data/settings.json?v=' + Date.now());
+      if (r.ok) { const cfg = await r.json(); if (Array.isArray(cfg.new_arrivals)) currentNA = cfg.new_arrivals.map(String); }
+    } catch(e) {}
+    naSelectedIds = new Set(currentNA);
+
+    const res = await fetch('../data/products.json?v=' + Date.now());
+    if (!res.ok) throw new Error();
+    naAllProducts = await res.json();
+    if (!Array.isArray(naAllProducts) || naAllProducts.length === 0) {
+      grid.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No products found. Pahela products add karo.</p>';
+      return;
+    }
+    renderNAGrid();
+  } catch(e) {
+    grid.innerHTML = '<p style="color:var(--red);font-size:12px;">Error loading products.</p>';
+  }
+}
+
+function renderNAGrid() {
+  const grid = document.getElementById('na-grid');
+  grid.innerHTML = '';
+  naAllProducts.forEach(p => {
+    const isSelected = naSelectedIds.has(String(p.id));
+    const card = document.createElement('div');
+    card.className = 'na-card' + (isSelected ? ' selected' : '');
+    card.innerHTML =
+      (isSelected ? '<div class="na-badge">✓ NEW</div>' : '') +
+      '<img src="' + (p.image_url || '') + '" alt="' + p.name + '" onerror="this.style.display=\'none\'" />' +
+      '<div class="na-card-name">' + p.name + '</div>';
+    card.addEventListener('click', () => {
+      const id = String(p.id);
+      if (naSelectedIds.has(id)) naSelectedIds.delete(id);
+      else naSelectedIds.add(id);
+      renderNAGrid();
+      document.getElementById('na-sel-count').textContent = naSelectedIds.size + ' selected';
+    });
+    grid.appendChild(card);
+  });
+  document.getElementById('na-sel-count').textContent = naSelectedIds.size + ' selected';
+}
+
+async function saveNewArrivals() {
+  const statusEl = document.getElementById('na-save-status');
+  statusEl.textContent = 'Saving...';
+  statusEl.style.color = 'var(--text-muted)';
+  try {
+    let existing = {};
+    try {
+      const r = await fetch('../data/settings.json?v=' + Date.now());
+      if (r.ok) existing = await r.json();
+    } catch(e) {}
+    existing.new_arrivals = [...naSelectedIds].map(Number);
+    await dbWrite('upsert', existing, undefined, 'settings');
+    statusEl.textContent = '✅ Saved! Homepage par reflect thase.';
+    statusEl.style.color = 'var(--green)';
+    setTimeout(() => statusEl.textContent = '', 3000);
+  } catch(e) {
+    statusEl.textContent = '❌ ' + e.message;
+    statusEl.style.color = '#E05050';
+  }
+}
+
+// ════════════════ IMAGE PREVIEW ════════════════
 document.getElementById('p-image').addEventListener('change', e => {
   const files = Array.from(e.target.files);
   const preview = document.getElementById('bulk-preview');
   preview.innerHTML = '';
-  files.forEach((file, i) => {
+  files.forEach((file,i) => {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'text-align:center;';
     const img = document.createElement('img');
@@ -661,100 +615,75 @@ document.getElementById('p-image').addEventListener('change', e => {
     img.style.cssText = 'width:80px;height:80px;object-fit:cover;border:1px solid var(--border);display:block;';
     const lbl = document.createElement('div');
     lbl.style.cssText = 'font-size:9px;color:var(--text-muted);letter-spacing:1px;margin-top:4px;';
-    lbl.textContent = '#' + (i + 1);
+    lbl.textContent = '#' + (i+1);
     wrap.appendChild(img); wrap.appendChild(lbl);
     preview.appendChild(wrap);
   });
 });
 
-// ════════════════════════════════════════════════════════════════════
-//  uploadFile — Cloudflare Worker maarfate GitHub Pages par upload
-//  GitHub PAT Worker ma safe (server-side) — browser ma nahi!
-// ════════════════════════════════════════════════════════════════════
+// ════════════════ FILE UPLOAD ════════════════
 async function uploadFile(file, folder, statusEl) {
   if (statusEl) statusEl.textContent = 'Uploading ' + file.name + '...';
-
   const workerUrl = window.WORKER_URL;
-  const secret    = window.ADMIN_SECRET;
-
+  const secret = window.ADMIN_SECRET;
   if (!workerUrl || workerUrl.includes('PASTE_YOUR')) {
     if (statusEl) statusEl.textContent = '❌ supabase.js ma WORKER_URL set karo!';
     return null;
   }
-
   try {
-    // File → base64 (browser FileReader)
-    const base64 = await new Promise((res, rej) => {
+    const base64 = await new Promise((res,rej) => {
       const reader = new FileReader();
-      reader.onload  = () => res(reader.result.split(',')[1]);
+      reader.onload = () => res(reader.result.split(',')[1]);
       reader.onerror = () => rej(new Error('File read failed'));
       reader.readAsDataURL(file);
     });
-
-    const ext      = file.name.split('.').pop().toLowerCase();
-    const filename = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext;
-
-    // POST to Cloudflare Worker /upload-media
-    const resp = await fetch(workerUrl.replace(/\/$/, '') + '/upload-media', {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const filename = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2,7) + '.' + ext;
+    const resp = await fetch(workerUrl.replace(/\/$/,'') + '/upload-media', {
       method: 'POST',
-      headers: {
-        'Content-Type':   'application/json',
-        'X-Admin-Secret': secret
-      },
-      body: JSON.stringify({
-        filename,
-        base64,
-        contentType: file.type || 'application/octet-stream'
-      })
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
+      body: JSON.stringify({ filename, base64, contentType: file.type || 'application/octet-stream' })
     });
-
-    const result = await resp.json().catch(() => ({}));
-
-    if (!resp.ok) {
-      if (statusEl) statusEl.textContent = '❌ Upload failed: ' + (result.error || resp.status);
-      return null;
-    }
-
+    const result = await resp.json().catch(()=>({}));
+    if (!resp.ok) { if (statusEl) statusEl.textContent = '❌ Upload failed: ' + (result.error||resp.status); return null; }
     if (statusEl) statusEl.textContent = '✓ Uploaded';
-    return result.url;  // https://eliitoze.github.io/website/media/images/xxx.jpg
-
-  } catch (err) {
+    return result.url;
+  } catch(err) {
     if (statusEl) statusEl.textContent = '❌ Upload error: ' + err.message;
     return null;
   }
 }
 
-// ════════════════════════════════════════════════════════════════════
-//  dbWrite — Cloudflare Worker maarfate Supabase products write
-//  (service_role key worker ma safe — browser ma nahi)
-// ════════════════════════════════════════════════════════════════════
+// ════════════════ DB WRITE ════════════════
 async function dbWrite(operation, data, matchId, table) {
   const workerUrl = window.WORKER_URL;
-  const secret    = window.ADMIN_SECRET;
+  const secret = window.ADMIN_SECRET;
   const body = { operation, table: table || 'products', data };
   if (matchId !== undefined && matchId !== null) body.match = { id: matchId };
-  const resp = await fetch(workerUrl.replace(/\/$/, '') + '/db-write', {
+  const resp = await fetch(workerUrl.replace(/\/$/,'') + '/db-write', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
     body: JSON.stringify(body)
   });
-  const result = await resp.json().catch(() => ({}));
+  const result = await resp.json().catch(()=>({}));
   if (!resp.ok) throw new Error(result.error || 'DB write failed: ' + resp.status);
   return result;
 }
 
+// ════════════════ ADD PRODUCT ════════════════
 async function addProduct() {
-  const name       = document.getElementById('p-name').value.trim();
-  const price      = parseFloat(document.getElementById('p-price').value);
-  const dprice     = parseFloat(document.getElementById('p-dprice').value) || null;
-  const qty        = parseInt(document.getElementById('p-qty').value);
-  const category   = document.getElementById('p-category').value;
+  const name        = document.getElementById('p-name').value.trim();
+  const price       = parseFloat(document.getElementById('p-price').value);
+  const dprice      = parseFloat(document.getElementById('p-dprice').value) || null;
+  const qty         = parseInt(document.getElementById('p-qty').value);
+  const category    = document.getElementById('p-category').value;
+  const gender      = document.getElementById('p-gender').value;
   const subcategory = document.getElementById('p-subcategory').value || null;
   const description = document.getElementById('p-description').value.trim() || null;
-  const imgFiles   = Array.from(document.getElementById('p-image').files);
-  const vidFile    = document.getElementById('p-video').files[0];
-  const statusEl   = document.getElementById('add-status');
-  const btn        = document.getElementById('add-btn');
+  const imgFiles    = Array.from(document.getElementById('p-image').files);
+  const vidFile     = document.getElementById('p-video').files[0];
+  const statusEl    = document.getElementById('add-status');
+  const btn         = document.getElementById('add-btn');
 
   if (!name || isNaN(price) || isNaN(qty) || imgFiles.length === 0) {
     statusEl.textContent = '⚠️ Name, Price, Qty and at least one Image required.';
@@ -775,12 +704,7 @@ async function addProduct() {
     const imageUrl = await uploadFile(imgFiles[i], 'images', document.getElementById('img-status'));
     if (!imageUrl) continue;
     try {
-      await dbWrite('insert', {
-        name, price, discount_price: dprice, qty,
-        image_url: imageUrl, video_url: videoUrl,
-        category, subcategory,
-        description: document.getElementById('p-description').value.trim() || null
-      });
+      await dbWrite('insert', { name, price, discount_price: dprice, qty, image_url: imageUrl, video_url: videoUrl, category, gender, subcategory, description });
       successCount++;
     } catch(e) { console.error('Insert error:', e.message); }
   }
@@ -796,20 +720,19 @@ async function addProduct() {
   setTimeout(() => {
     ['p-name','p-price','p-dprice','p-qty','p-description'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('p-category').value = 'Sterling Silver 925';
+    document.getElementById('p-gender').value = 'Women';
     document.getElementById('p-subcategory').value = '';
     document.getElementById('p-image').value = '';
     document.getElementById('p-video').value = '';
     document.getElementById('bulk-preview').innerHTML = '';
     document.getElementById('img-status').textContent = '';
     document.getElementById('vid-status').textContent = '';
-    statusEl.textContent = '';
-    btn.disabled = false;
+    statusEl.textContent = ''; btn.disabled = false;
   }, 2500);
-
   loadStats();
 }
 
-// ── NOTICE BANNER
+// ════════════════ NOTICE BANNER ════════════════
 let selectedColor = '#B8860B';
 function selectColor(btn) {
   document.querySelectorAll('.color-chip').forEach(b => b.classList.remove('active'));
@@ -824,123 +747,87 @@ function toggleNoticePreview() {
   const label = document.getElementById('notice-status-label');
   label.textContent = active ? 'ON' : 'OFF';
   label.style.color = active ? 'var(--gold)' : 'var(--text-muted)';
-  if (text) {
-    preview.style.display = 'block';
-    preview.style.background = selectedColor;
-    preview.textContent = text;
-  } else {
-    preview.style.display = 'none';
-  }
+  if (text) { preview.style.display='block'; preview.style.background=selectedColor; preview.textContent=text; }
+  else { preview.style.display='none'; }
 }
 async function saveNotice() {
   const active = document.getElementById('notice-active').checked;
   const text = document.getElementById('notice-text').value.trim();
   const statusEl = document.getElementById('notice-save-status');
-  if (active && !text) {
-    statusEl.textContent = '⚠️ Banner ON chhe pan message khali chhe.';
-    statusEl.style.color = '#E05050'; return;
-  }
+  if (active && !text) { statusEl.textContent='⚠️ Banner ON chhe pan message khali chhe.'; statusEl.style.color='#E05050'; return; }
   try {
-    await dbWrite('upsert', { notice_banner: { active, text, color: selectedColor } }, undefined, 'settings');
-  } catch(e) {
-    statusEl.textContent = '❌ Save failed: ' + e.message;
-    statusEl.style.color = '#E05050'; return;
-  }
+    let existing = {};
+    try { const r = await fetch('../data/settings.json?v='+Date.now()); if (r.ok) existing = await r.json(); } catch(e) {}
+    existing.notice_banner = { active, text, color: selectedColor };
+    await dbWrite('upsert', existing, undefined, 'settings');
+  } catch(e) { statusEl.textContent='❌ Save failed: '+e.message; statusEl.style.color='#E05050'; return; }
   statusEl.textContent = active ? '✅ Banner live thayu!' : '✅ Banner band thayu.';
   statusEl.style.color = 'var(--green)';
-  setTimeout(() => statusEl.textContent = '', 3000);
+  setTimeout(() => statusEl.textContent='', 3000);
 }
 async function loadNoticeSettings() {
-  let s;
   try {
     const res = await fetch('../data/settings.json?v=' + Date.now());
     if (!res.ok) return;
     const cfg = await res.json();
-    s = cfg.notice_banner;
+    const s = cfg.notice_banner;
     if (!s) return;
     document.getElementById('notice-active').checked = s.active;
     document.getElementById('notice-text').value = s.text || '';
-    if (s.color) {
-      selectedColor = s.color;
-      document.querySelectorAll('.color-chip').forEach(b => {
-        b.classList.toggle('active', b.dataset.color === s.color);
-      });
-    }
+    if (s.color) { selectedColor = s.color; document.querySelectorAll('.color-chip').forEach(b => b.classList.toggle('active', b.dataset.color===s.color)); }
     toggleNoticePreview();
   } catch(e) {}
 }
 
-// ── MANAGE TABLE (original)
+// ════════════════ MANAGE TABLE ════════════════
 async function loadManageTable() {
   const wrap = document.getElementById('manage-table-wrap');
   wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Loading...</p>';
-  let data = [], error = false;
-  try {
-    const res = await fetch('../data/products.json?v=' + Date.now());
-    if (!res.ok) throw new Error();
-    data = await res.json();
-    if (!Array.isArray(data)) data = [];
-  } catch(e) { error = true; }
-  if (error || data.length === 0) {
-    wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No products found.</p>'; return;
-  }
+  let data = [];
+  try { const res = await fetch('../data/products.json?v='+Date.now()); if (!res.ok) throw new Error(); data = await res.json(); if (!Array.isArray(data)) data=[]; } catch(e) {}
+  if (data.length === 0) { wrap.innerHTML='<p style="color:var(--text-muted);font-size:12px;">No products found.</p>'; return; }
   const rows = data.map(p => `
     <tr>
-      <td><img src="${p.image_url || ''}" alt="" /></td>
+      <td><img src="${p.image_url||''}" alt="" /></td>
       <td>${p.name}</td>
+      <td>${p.category||'—'}</td>
+      <td>${p.gender||'—'}</td>
       <td>₹${p.price}</td>
-      <td>${p.discount_price ? '₹' + p.discount_price : '—'}</td>
+      <td>${p.discount_price ? '₹'+p.discount_price : '—'}</td>
       <td><input class="qty-edit" type="number" value="${p.qty}" min="0" id="qty-${p.id}" /></td>
-      <td><span class="badge-stock ${p.qty > 0 ? 'badge-in' : 'badge-out'}">${p.qty > 0 ? 'In Stock' : 'Out'}</span></td>
+      <td><span class="badge-stock ${p.qty>0?'badge-in':'badge-out'}">${p.qty>0?'In Stock':'Out'}</span></td>
       <td>
         <button class="btn-update" onclick="updateQty(${p.id})">Update</button>
-        <button class="btn-delete" onclick="deleteProduct(${p.id}, '${p.name.replace(/'/g,"\\'")}')">✕</button>
+        <button class="btn-delete" onclick="deleteProduct(${p.id},'${p.name.replace(/'/g,"\\'")}')">✕</button>
       </td>
     </tr>`).join('');
   wrap.innerHTML = `<div style="overflow-x:auto"><table class="admin-table">
-    <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Discount</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Gender</th><th>Price</th><th>Discount</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
 async function updateQty(id) {
-  const qty = parseInt(document.getElementById('qty-' + id).value);
-  if (isNaN(qty) || qty < 0) return alert('Invalid quantity');
-  try {
-    await dbWrite('update', { qty }, id);
-    alert('Quantity updated!');
-  } catch(e) { return alert('Error: ' + e.message); }
+  const qty = parseInt(document.getElementById('qty-'+id).value);
+  if (isNaN(qty)||qty<0) return alert('Invalid quantity');
+  try { await dbWrite('update',{qty},id); alert('Quantity updated!'); } catch(e) { return alert('Error: '+e.message); }
   loadManageTable(); loadStats();
 }
-async function deleteProduct(id, name) {
-  if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
-  try {
-    await dbWrite('delete', null, id);
-  } catch(e) { return alert('Error: ' + e.message); }
+async function deleteProduct(id,name) {
+  if (!confirm('Delete "'+name+'"? This cannot be undone.')) return;
+  try { await dbWrite('delete',null,id); } catch(e) { return alert('Error: '+e.message); }
   loadManageTable(); loadStats();
 }
 
-// ════════════════════════════════════════
-//  EDIT PRODUCTS
-// ════════════════════════════════════════
+// ════════════════ EDIT PRODUCTS ════════════════
 let allEditProducts = [];
 let selectedEditIds = new Set();
 
 async function loadEditProducts() {
   const grid = document.getElementById('edit-product-grid');
   grid.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Loading...</p>';
-  selectedEditIds.clear();
-  updateEditToolbar();
-
-  let data = [], error = false;
-  try {
-    const res = await fetch('../data/products.json?v=' + Date.now());
-    if (!res.ok) throw new Error();
-    data = await res.json();
-    if (!Array.isArray(data)) data = [];
-  } catch(e) { error = true; }
-  if (error || data.length === 0) {
-    grid.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No products found.</p>';
-    return;
-  }
+  selectedEditIds.clear(); updateEditToolbar();
+  let data=[];
+  try { const res=await fetch('../data/products.json?v='+Date.now()); if(!res.ok) throw new Error(); data=await res.json(); if(!Array.isArray(data)) data=[]; } catch(e){}
+  if (data.length===0) { grid.innerHTML='<p style="color:var(--text-muted);font-size:12px;">No products found.</p>'; return; }
   allEditProducts = data;
   renderEditGrid();
 }
@@ -948,367 +835,180 @@ async function loadEditProducts() {
 function renderEditGrid() {
   const grid = document.getElementById('edit-product-grid');
   grid.innerHTML = allEditProducts.map(p => `
-    <div class="edit-product-card ${selectedEditIds.has(p.id) ? 'selected' : ''}"
-         id="edit-card-${p.id}"
-         onclick="toggleEditSelect(${p.id})">
-      <div class="card-check">${selectedEditIds.has(p.id) ? '✓' : ''}</div>
-      <img src="${p.image_url || ''}" alt="${p.name}" onerror="this.style.display='none'" />
+    <div class="edit-product-card ${selectedEditIds.has(p.id)?'selected':''}" id="edit-card-${p.id}" onclick="toggleEditSelect(${p.id})">
+      <div class="card-check">${selectedEditIds.has(p.id)?'✓':''}</div>
+      <img src="${p.image_url||''}" alt="${p.name}" onerror="this.style.display='none'" />
       <div class="edit-card-name">${p.name}</div>
-      <div class="edit-card-meta">₹${p.price} · ${p.category || '—'}</div>
-    </div>
-  `).join('');
+      <div class="edit-card-meta">${p.category||'—'} · ${p.gender||'—'} · ₹${p.price}</div>
+    </div>`).join('');
 }
 
 function toggleEditSelect(id) {
-  if (selectedEditIds.has(id)) selectedEditIds.delete(id);
-  else selectedEditIds.add(id);
-  // update card visual
-  const card = document.getElementById('edit-card-' + id);
-  if (card) {
-    card.classList.toggle('selected', selectedEditIds.has(id));
-    card.querySelector('.card-check').textContent = selectedEditIds.has(id) ? '✓' : '';
-  }
+  if (selectedEditIds.has(id)) selectedEditIds.delete(id); else selectedEditIds.add(id);
+  const card = document.getElementById('edit-card-'+id);
+  if (card) { card.classList.toggle('selected',selectedEditIds.has(id)); card.querySelector('.card-check').textContent=selectedEditIds.has(id)?'✓':''; }
   updateEditToolbar();
-  // sync select-all checkbox
   document.getElementById('edit-select-all').checked = selectedEditIds.size === allEditProducts.length;
 }
 
 function toggleSelectAll(chk) {
-  if (chk.checked) {
-    allEditProducts.forEach(p => selectedEditIds.add(p.id));
-  } else {
-    selectedEditIds.clear();
-  }
-  renderEditGrid();
-  updateEditToolbar();
+  if (chk.checked) allEditProducts.forEach(p => selectedEditIds.add(p.id));
+  else selectedEditIds.clear();
+  renderEditGrid(); updateEditToolbar();
 }
 
 function updateEditToolbar() {
   const n = selectedEditIds.size;
-  document.getElementById('edit-sel-count').textContent = n + ' selected';
-  document.getElementById('btn-open-bulk-edit').disabled = n === 0;
-  document.getElementById('btn-bulk-delete').disabled = n === 0;
+  document.getElementById('edit-sel-count').textContent = n+' selected';
+  document.getElementById('btn-open-bulk-edit').disabled = n===0;
+  document.getElementById('btn-bulk-delete').disabled = n===0;
 }
 
-// ── Bulk Edit Modal
 function openBulkEditModal() {
-  const n = selectedEditIds.size;
-  if (n === 0) return;
-  document.getElementById('bulk-modal-sub').textContent = n + ' product(s) selected — khali fields change nahi thay';
-  // Reset fields
-  ['bulk-name','bulk-price','bulk-dprice','bulk-qty'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('bulk-category').value = '';
-  document.getElementById('bulk-subcategory').value = '';
-  document.getElementById('bulk-img-file').value = '';
-  document.getElementById('bulk-vid-file').value = '';
-  document.getElementById('bulk-img-preview').innerHTML = '';
-  document.getElementById('bulk-vid-preview').innerHTML = '';
-  document.getElementById('bulk-edit-status').textContent = '';
+  const n = selectedEditIds.size; if (n===0) return;
+  document.getElementById('bulk-modal-sub').textContent = n+' product(s) selected — khali fields change nahi thay';
+  ['bulk-name','bulk-price','bulk-dprice','bulk-qty'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('bulk-category').value='';
+  document.getElementById('bulk-gender').value='';
+  document.getElementById('bulk-subcategory').value='';
+  document.getElementById('bulk-img-preview').innerHTML='';
+  document.getElementById('bulk-vid-preview').innerHTML='';
+  document.getElementById('bulk-edit-status').textContent='';
   document.getElementById('bulk-modal-overlay').classList.add('open');
 }
-function closeBulkEditModal() {
-  document.getElementById('bulk-modal-overlay').classList.remove('open');
-}
+function closeBulkEditModal() { document.getElementById('bulk-modal-overlay').classList.remove('open'); }
 
 function previewBulkImg(input) {
-  const preview = document.getElementById('bulk-img-preview');
-  preview.innerHTML = '';
-  if (input.files[0]) {
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(input.files[0]);
-    img.className = 'media-preview-thumb';
-    preview.appendChild(img);
-  }
+  const prev = document.getElementById('bulk-img-preview'); prev.innerHTML='';
+  if (input.files[0]) { const img=document.createElement('img'); img.src=URL.createObjectURL(input.files[0]); img.className='media-preview-thumb'; prev.appendChild(img); }
 }
 function previewBulkVid(input) {
-  const preview = document.getElementById('bulk-vid-preview');
-  preview.innerHTML = '';
-  if (input.files[0]) {
-    const lbl = document.createElement('div');
-    lbl.style.cssText = 'font-size:11px;color:var(--gold);letter-spacing:1px;padding:8px;border:1px solid var(--border);';
-    lbl.textContent = '🎬 ' + input.files[0].name;
-    preview.appendChild(lbl);
-  }
+  const prev = document.getElementById('bulk-vid-preview'); prev.innerHTML='';
+  if (input.files[0]) { const div=document.createElement('div'); div.style.cssText='font-size:10px;color:var(--gold);padding:8px;border:1px solid var(--border);'; div.textContent='📹 '+input.files[0].name; prev.appendChild(div); }
 }
 
 async function applyBulkEdit() {
   const ids = Array.from(selectedEditIds);
-  if (ids.length === 0) return;
+  if (ids.length===0) return;
+  const btn=document.getElementById('btn-bulk-update');
+  const statusEl=document.getElementById('bulk-edit-status');
+  btn.disabled=true; statusEl.style.color='var(--text-muted)'; statusEl.textContent='Updating '+ids.length+' products...';
 
-  const statusEl = document.getElementById('bulk-edit-status');
-  const btn = document.getElementById('btn-bulk-update');
-  btn.disabled = true;
-  statusEl.style.color = 'var(--text-muted)';
-  statusEl.textContent = 'Updating...';
+  const name=document.getElementById('bulk-name').value.trim();
+  const price=document.getElementById('bulk-price').value;
+  const dprice=document.getElementById('bulk-dprice').value;
+  const qty=document.getElementById('bulk-qty').value;
+  const category=document.getElementById('bulk-category').value;
+  const gender=document.getElementById('bulk-gender').value;
+  const subcategory=document.getElementById('bulk-subcategory').value;
 
-  // Build update object — only include filled fields
-  const updates = {};
-  const name = document.getElementById('bulk-name').value.trim();
-  const price = document.getElementById('bulk-price').value;
-  const dprice = document.getElementById('bulk-dprice').value;
-  const qty = document.getElementById('bulk-qty').value;
-  const category = document.getElementById('bulk-category').value;
-  const subcategory = document.getElementById('bulk-subcategory').value;
+  let imgUrl=null, vidUrl=null;
+  const imgFile=document.getElementById('bulk-img-file').files[0];
+  const vidFile=document.getElementById('bulk-vid-file').files[0];
+  if (imgFile) { statusEl.textContent='Uploading image...'; imgUrl=await uploadFile(imgFile,'images',null); }
+  if (vidFile) { statusEl.textContent='Uploading video...'; vidUrl=await uploadFile(vidFile,'videos',null); }
 
-  if (name)     updates.name = name;
-  if (price)    updates.price = parseFloat(price);
-  if (dprice)   updates.discount_price = parseFloat(dprice);
-  if (qty !== '') updates.qty = parseInt(qty);
-  if (category) updates.category = category;
-  if (subcategory) updates.subcategory = subcategory;
+  const updates={};
+  if (name) updates.name=name;
+  if (price) updates.price=parseFloat(price);
+  if (dprice) updates.discount_price=parseFloat(dprice);
+  if (qty!=='') updates.qty=parseInt(qty);
+  if (category) updates.category=category;
+  if (gender) updates.gender=gender;
+  if (subcategory) updates.subcategory=subcategory;
+  if (imgUrl) updates.image_url=imgUrl;
+  if (vidUrl) updates.video_url=vidUrl;
 
-  // Upload new image if selected
-  const imgFile = document.getElementById('bulk-img-file').files[0];
-  if (imgFile) {
-    statusEl.textContent = 'Uploading new image...';
-    const imgUrl = await uploadFile(imgFile, 'images', null);
-    if (imgUrl) updates.image_url = imgUrl;
-  }
+  if (Object.keys(updates).length===0) { statusEl.textContent='⚠️ Koi changes nathi.'; btn.disabled=false; return; }
 
-  // Upload new video if selected
-  const vidFile = document.getElementById('bulk-vid-file').files[0];
-  if (vidFile) {
-    statusEl.textContent = 'Uploading new video...';
-    const vidUrl = await uploadFile(vidFile, 'videos', null);
-    if (vidUrl) updates.video_url = vidUrl;
-  }
+  let errors=0;
+  for (const id of ids) { try { await dbWrite('update',updates,id); } catch(e) { errors++; } }
 
-  if (Object.keys(updates).length === 0) {
-    statusEl.textContent = '⚠️ Koi pan field bharo to change thay.';
-    statusEl.style.color = '#E05050';
-    btn.disabled = false;
-    return;
-  }
+  if (errors===0) { statusEl.textContent='✅ '+ids.length+' product(s) updated!'; statusEl.style.color='var(--green)'; }
+  else { statusEl.textContent='⚠️ '+errors+' errors occurred.'; statusEl.style.color='#E05050'; }
 
-  statusEl.textContent = 'Saving ' + ids.length + ' products...';
-
-  // Update each selected product
-  let errors = 0;
-  for (const id of ids) {
-    try { await dbWrite('update', updates, id); } catch(e) { errors++; }
-  }
-
-  if (errors === 0) {
-    statusEl.textContent = '✅ ' + ids.length + ' product(s) updated successfully!';
-    statusEl.style.color = 'var(--green)';
-  } else {
-    statusEl.textContent = '⚠️ ' + errors + ' errors occurred.';
-    statusEl.style.color = '#E05050';
-  }
-
-  btn.disabled = false;
-
-  // Refresh grid after short delay
-  setTimeout(() => {
-    closeBulkEditModal();
-    loadEditProducts();
-    loadStats();
-  }, 1500);
+  btn.disabled=false;
+  setTimeout(() => { closeBulkEditModal(); loadEditProducts(); loadStats(); }, 1500);
 }
 
 async function bulkDeleteProducts() {
-  const ids = Array.from(selectedEditIds);
-  if (ids.length === 0) return;
-  if (!confirm('Delete ' + ids.length + ' selected product(s)? This cannot be undone.')) return;
-
-  const statusEl = document.getElementById('edit-status');
-  statusEl.style.color = 'var(--text-muted)';
-  statusEl.textContent = 'Deleting ' + ids.length + ' products...';
-
-  let errors = 0;
-  for (const id of ids) {
-    try { await dbWrite('delete', null, id); } catch(e) { errors++; }
-  }
-
-  if (errors === 0) {
-    statusEl.textContent = '✅ ' + ids.length + ' product(s) deleted.';
-    statusEl.style.color = 'var(--green)';
-  } else {
-    statusEl.textContent = '⚠️ ' + errors + ' errors occurred.';
-    statusEl.style.color = '#E05050';
-  }
-
-  setTimeout(() => statusEl.textContent = '', 3000);
-  loadEditProducts();
-  loadStats();
+  const ids=Array.from(selectedEditIds); if(ids.length===0) return;
+  if (!confirm('Delete '+ids.length+' selected product(s)? This cannot be undone.')) return;
+  const statusEl=document.getElementById('edit-status');
+  statusEl.style.color='var(--text-muted)'; statusEl.textContent='Deleting '+ids.length+' products...';
+  let errors=0;
+  for (const id of ids) { try { await dbWrite('delete',null,id); } catch(e) { errors++; } }
+  statusEl.textContent = errors===0 ? '✅ '+ids.length+' product(s) deleted.' : '⚠️ '+errors+' errors occurred.';
+  statusEl.style.color = errors===0 ? 'var(--green)' : '#E05050';
+  setTimeout(() => statusEl.textContent='', 3000);
+  loadEditProducts(); loadStats();
 }
 
-// ════════════════════════════════════════
-//  PUSH NOTIFICATIONS
-//  Logic is in push-handler.js (PushHandler)
-//  This section handles only the admin UI.
-// ════════════════════════════════════════
-
-const EDGE_FN_URL = (window.WORKER_URL || '').replace(/\/$/, '') + '/send-push';
+// ════════════════ PUSH NOTIFICATIONS ════════════════
+const EDGE_FN_URL = (window.WORKER_URL||'').replace(/\/$/,'') + '/send-push';
 
 async function initNotifPanel() {
-  const dot   = document.getElementById('notif-permission-dot');
-  const label = document.getElementById('notif-permission-label');
-  const btn   = document.getElementById('btn-enable-notif');
-
-  if (!PushHandler.isPushSupported()) {
-    dot.className = 'notif-dot denied';
-    label.textContent = 'Push notifications not supported in this browser';
-    btn.disabled = true;
-    return;
-  }
-
-  const perm = Notification.permission;
-
-  if (perm === 'granted') {
-    dot.className = 'notif-dot active';
-    label.textContent = 'Notifications enabled on this device';
-    btn.textContent = '✓ Notifications Already Enabled';
-    btn.disabled = true;
-    // Silently ensure this device's subscription is saved in DB
-    PushHandler.subscribeDevice();
-  } else if (perm === 'denied') {
-    dot.className = 'notif-dot denied';
-    label.textContent = 'Notifications blocked — browser settings thi allow karo';
-    btn.disabled = true;
-  } else {
-    dot.className = 'notif-dot';
-    label.textContent = 'Notifications not yet enabled on this device';
-    btn.disabled = false;
-  }
-
-  // Load subscriber count from Supabase
-  const { count } = await sb.from('push_subscriptions').select('id', { count: 'exact', head: true });
-  document.getElementById('notif-sub-count').textContent = (count || 0) + ' subscribers';
+  const dot=document.getElementById('notif-permission-dot');
+  const label=document.getElementById('notif-permission-label');
+  const btn=document.getElementById('btn-enable-notif');
+  if (!PushHandler.isPushSupported()) { dot.className='notif-dot denied'; label.textContent='Push notifications not supported'; btn.disabled=true; return; }
+  const perm=Notification.permission;
+  if (perm==='granted') { dot.className='notif-dot active'; label.textContent='Notifications enabled'; btn.textContent='✓ Already Enabled'; btn.disabled=true; PushHandler.subscribeDevice(); }
+  else if (perm==='denied') { dot.className='notif-dot denied'; label.textContent='Notifications blocked — browser settings thi allow karo'; btn.disabled=true; }
+  else { dot.className='notif-dot'; label.textContent='Notifications not yet enabled'; btn.disabled=false; }
+  const { count } = await sb.from('push_subscriptions').select('id',{count:'exact',head:true});
+  document.getElementById('notif-sub-count').textContent=(count||0)+' subscribers';
 }
 
 async function subscribeThisDevice() {
-  const statusEl = document.getElementById('notif-sub-status');
-  const btn      = document.getElementById('btn-enable-notif');
-  btn.disabled = true;
-  statusEl.style.color = 'var(--text-muted)';
-  statusEl.textContent = 'Permission maangta chhe...';
-
+  const statusEl=document.getElementById('notif-sub-status');
+  const btn=document.getElementById('btn-enable-notif');
+  btn.disabled=true; statusEl.style.color='var(--text-muted)'; statusEl.textContent='Permission maangta chhe...';
   try {
-    // Request permission + subscribe via PushHandler
-    const perm = await PushHandler.requestPermissionAndSubscribe();
-
-    if (perm !== 'granted') {
-      statusEl.textContent = '❌ Permission denied. Browser settings thi allow karo.';
-      statusEl.style.color = '#E05050';
-      btn.disabled = false;
-      return;
-    }
-
-    statusEl.textContent = '✅ This device subscribed successfully!';
-    statusEl.style.color = 'var(--green)';
-    document.getElementById('notif-permission-dot').className = 'notif-dot active';
-    document.getElementById('notif-permission-label').textContent = 'Notifications enabled on this device';
-    btn.textContent = '✓ Notifications Enabled';
-
-    // Refresh subscriber count
-    const { count } = await sb.from('push_subscriptions').select('id', { count: 'exact', head: true });
-    document.getElementById('notif-sub-count').textContent = (count || 0) + ' subscribers';
-
-  } catch (err) {
-    statusEl.textContent = '❌ Error: ' + err.message;
-    statusEl.style.color = '#E05050';
-    btn.disabled = false;
-  }
+    const perm=await PushHandler.requestPermissionAndSubscribe();
+    if (perm!=='granted') { statusEl.textContent='❌ Permission denied.'; statusEl.style.color='#E05050'; btn.disabled=false; return; }
+    statusEl.textContent='✅ Device subscribed!'; statusEl.style.color='var(--green)';
+    document.getElementById('notif-permission-dot').className='notif-dot active';
+    document.getElementById('notif-permission-label').textContent='Notifications enabled';
+    btn.textContent='✓ Enabled';
+    const { count }=await sb.from('push_subscriptions').select('id',{count:'exact',head:true});
+    document.getElementById('notif-sub-count').textContent=(count||0)+' subscribers';
+  } catch(err) { statusEl.textContent='❌ Error: '+err.message; statusEl.style.color='#E05050'; btn.disabled=false; }
 }
 
 async function sendPushNotification() {
-  const title    = document.getElementById('notif-title').value.trim();
-  const body     = document.getElementById('notif-body').value.trim();
-  const statusEl = document.getElementById('notif-send-status');
-  const btn      = document.getElementById('btn-send-notif');
-
-  if (!title || !body) {
-    statusEl.textContent = '⚠️ Title ane Message banne required chhe.';
-    statusEl.style.color = '#E05050';
-    return;
-  }
-
-  btn.disabled = true;
-  statusEl.style.color = 'var(--text-muted)';
-  statusEl.textContent = 'Subscribers load karta chhe...';
-
-  // 1. Fetch all subscriptions via Worker (service_role — bypasses RLS)
-  let subs = [];
+  const title=document.getElementById('notif-title').value.trim();
+  const body=document.getElementById('notif-body').value.trim();
+  const statusEl=document.getElementById('notif-send-status');
+  const btn=document.getElementById('btn-send-notif');
+  if (!title||!body) { statusEl.textContent='⚠️ Title ane Message required chhe.'; statusEl.style.color='#E05050'; return; }
+  btn.disabled=true; statusEl.style.color='var(--text-muted)'; statusEl.textContent='Subscribers load karta chhe...';
+  let subs=[];
   try {
-    const subResp = await fetch(window.WORKER_URL.replace(/\/$/, '') + '/db-write', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': window.ADMIN_SECRET },
-      body: JSON.stringify({ operation: 'select', table: 'push_subscriptions' })
-    });
-    const subResult = await subResp.json().catch(() => ({}));
-    if (!subResp.ok) throw new Error(subResult.error || 'Fetch failed');
-    subs = subResult.data || [];
-  } catch(e) {
-    statusEl.textContent = '❌ Fetch failed: ' + e.message;
-    statusEl.style.color = '#E05050';
-    btn.disabled = false;
-    return;
-  }
-  if (!subs || subs.length === 0) {
-    statusEl.textContent = '⚠️ Koi subscribers nathi. Pahela koi device thi enable karo.';
-    statusEl.style.color = '#E05050';
-    btn.disabled = false;
-    return;
-  }
-
-  statusEl.textContent = subs.length + ' subscribers ne notification mokalta chhe...';
-
-  // 2. Build payload
-  const payload = {
-    title,
-    body,
-    url: 'https://eliitoze.github.io/website/'
-  };
-
-  // 3. POST to Cloudflare Worker /send-push
-  const workerUrl = window.WORKER_URL;
-  const secret    = window.ADMIN_SECRET;
-  if (!workerUrl || workerUrl.includes('PASTE_YOUR')) {
-    statusEl.textContent = '❌ supabase.js ma WORKER_URL set karo!';
-    statusEl.style.color = '#E05050';
-    btn.disabled = false;
-    return;
-  }
-
+    const subResp=await fetch(window.WORKER_URL.replace(/\/$/,'')+'/db-write',{ method:'POST', headers:{'Content-Type':'application/json','X-Admin-Secret':window.ADMIN_SECRET}, body:JSON.stringify({operation:'select',table:'push_subscriptions'}) });
+    const subResult=await subResp.json().catch(()=>({}));
+    if (!subResp.ok) throw new Error(subResult.error||'Fetch failed');
+    subs=subResult.data||[];
+  } catch(e) { statusEl.textContent='❌ Fetch failed: '+e.message; statusEl.style.color='#E05050'; btn.disabled=false; return; }
+  if (!subs||subs.length===0) { statusEl.textContent='⚠️ Koi subscribers nathi.'; statusEl.style.color='#E05050'; btn.disabled=false; return; }
+  statusEl.textContent=subs.length+' subscribers ne notification mokalta chhe...';
+  const payload={ title, body, url:'https://eliitoze.github.io/website/' };
   try {
-    const res = await fetch(EDGE_FN_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type':   'application/json',
-        'X-Admin-Secret': secret
-      },
-      body: JSON.stringify({ subscriptions: subs, payload })
-    });
-
-    let result = {};
-    try { result = await res.json(); } catch (_) {}
-
+    const res=await fetch(EDGE_FN_URL,{ method:'POST', headers:{'Content-Type':'application/json','X-Admin-Secret':window.ADMIN_SECRET}, body:JSON.stringify({subscriptions:subs,payload}) });
+    let result={}; try { result=await res.json(); } catch(_) {}
     if (res.ok) {
-      const sent   = result.sent   !== undefined ? result.sent   : subs.length;
-      const failed = result.failed !== undefined ? result.failed : 0;
-
-      if (failed === 0) {
-        statusEl.textContent = '✅ Notification sent to ' + sent + ' subscriber(s)!';
-        statusEl.style.color = 'var(--green)';
-        document.getElementById('notif-title').value = '';
-        document.getElementById('notif-body').value  = '';
-      } else {
-        statusEl.textContent = '⚠️ Sent: ' + sent + '  |  Failed: ' + failed;
-        statusEl.style.color = 'var(--gold)';
-      }
-    } else {
-      const msg = result.error || result.message || ('HTTP ' + res.status);
-      statusEl.textContent = '❌ Worker error: ' + msg;
-      statusEl.style.color = '#E05050';
-    }
-  } catch (netErr) {
-    statusEl.textContent = '❌ Network error: ' + netErr.message;
-    statusEl.style.color = '#E05050';
-  }
-
-  btn.disabled = false;
+      const sent=result.sent!==undefined?result.sent:subs.length;
+      const failed=result.failed!==undefined?result.failed:0;
+      statusEl.textContent = failed===0 ? '✅ Sent to '+sent+' subscriber(s)!' : '⚠️ Sent: '+sent+' | Failed: '+failed;
+      statusEl.style.color = failed===0 ? 'var(--green)' : 'var(--gold)';
+      if (failed===0) { document.getElementById('notif-title').value=''; document.getElementById('notif-body').value=''; }
+    } else { statusEl.textContent='❌ Worker error: '+(result.error||'HTTP '+res.status); statusEl.style.color='#E05050'; }
+  } catch(netErr) { statusEl.textContent='❌ Network error: '+netErr.message; statusEl.style.color='#E05050'; }
+  btn.disabled=false;
 }
+
+// Load on start
+loadSubcatManager();
 </script>
 </body>
 </html>
