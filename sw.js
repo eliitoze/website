@@ -3,7 +3,7 @@
 //  Handles: caching, push notifications, notification clicks
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE     = 'eliitoze-v3';
+const CACHE     = 'eliitoze-v4';
 // Use absolute paths for GitHub Pages /website/ subfolder
 const ICON_PATH = '/website/icon-192.png';
 
