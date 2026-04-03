@@ -909,124 +909,6 @@ footer a { color: var(--gold-dark); text-decoration: none; }
   .hero-cat-btn { min-width: 240px; }
 }
 
-/* ── CATEGORY FILTERS ── */
-.filter-wrap {
-  max-width: 1200px;
-  margin: 0 auto 32px;
-  padding: 0 24px;
-}
-
-.cat-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.cat-tab {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  padding: 10px 22px;
-  font-family: inherit;
-  font-size: 10px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cat-tab:hover {
-  border-color: var(--gold);
-  color: var(--gold);
-}
-
-.cat-tab.active {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: #000;
-  font-weight: 600;
-}
-
-.subcat-pills {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-height: 36px;
-}
-
-.subcat-pill {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.15);
-  color: var(--text-muted);
-  padding: 6px 16px;
-  font-family: inherit;
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  border-radius: 20px;
-  transition: all 0.2s;
-}
-
-.subcat-pill:hover {
-  border-color: var(--gold);
-  color: var(--gold);
-}
-
-.subcat-pill.active {
-  background: rgba(212,175,55,0.15);
-  border-color: var(--gold);
-  color: var(--gold);
-}
-
-/* Product card category badge */
-.cat-badge {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  background: rgba(0,0,0,0.75);
-  color: var(--gold);
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border: 1px solid rgba(212,175,55,0.4);
-}
-
-.product-subcat {
-  font-size: 9px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--gold);
-  opacity: 0.7;
-  margin-bottom: 4px;
-}
-
-/* ── WhatsApp Product Highlight ── */
-@keyframes highlightPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(212,175,55,0.7); }
-  50%  { box-shadow: 0 0 0 12px rgba(212,175,55,0.2); }
-  100% { box-shadow: 0 0 0 0 rgba(212,175,55,0); }
-}
-
-.product-highlight {
-  animation: highlightPulse 1s ease 3;
-  border: 1px solid var(--gold) !important;
-}
-
-/* ── CATEGORY FILTERS ── */
-.filter-wrap { max-width:1200px; margin:0 auto 32px; padding:0 24px; }
-.cat-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-.cat-tab { background:transparent; border:1px solid var(--border); color:var(--text-muted); padding:10px 22px; font-family:inherit; font-size:10px; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:all 0.2s; }
-.cat-tab:hover { border-color:var(--gold); color:var(--gold); }
-.cat-tab.active { background:var(--gold); border-color:var(--gold); color:#000; font-weight:600; }
-.subcat-pills { display:flex; gap:8px; flex-wrap:wrap; min-height:36px; }
-.subcat-pill { background:transparent; border:1px solid rgba(255,255,255,0.15); color:var(--text-muted); padding:6px 16px; font-family:inherit; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; border-radius:20px; transition:all 0.2s; }
-.subcat-pill:hover { border-color:var(--gold); color:var(--gold); }
-.subcat-pill.active { background:rgba(212,175,55,0.15); border-color:var(--gold); color:var(--gold); }
-.cat-badge { position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,0.75); color:var(--gold); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; padding:3px 8px; border:1px solid rgba(212,175,55,0.4); }
-.product-subcat { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); opacity:0.7; margin-bottom:4px; }
 
 /* ── NOTICE BANNER ── */
 #notice-banner { font-family:inherit; font-weight:500; min-height:38px; display:flex; align-items:center; justify-content:center; }
@@ -1585,3 +1467,6 @@ footer {
 }
 .social-link:hover { border-color: var(--gold); color: var(--gold); }
 .social-link svg { width: 16px; height: 16px; }
+
+/* ── FILTER WRAP ── */
+.filter-wrap { max-width:1200px; margin:0 auto 16px; padding:0 24px; }
