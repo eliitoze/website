@@ -1,5 +1,18 @@
 [
   {
+    "id": 177,
+    "name": "Silver Bracelet for women 925",
+    "price": 3399,
+    "discount_price": 2999,
+    "qty": 1,
+    "image_url": "https://eliitoze.github.io/website/media/images/1775227809180-88nlm.png",
+    "video_url": null,
+    "category": "Sterling Silver 925",
+    "gender": "Women",
+    "subcategory": "Bracelet",
+    "description": "925 Silver"
+  },
+  {
     "id": 14,
     "name": "Sterling Silver Necklace 925",
     "price": 3250,
@@ -1146,7 +1159,7 @@
   },
   {
     "id": 160,
-    "name": "925 Silver Infinity ♾️ Ring (custum size available)",
+    "name": "925 Silver Infinity â¾ï¸ Ring (custum size available)",
     "price": 2299,
     "qty": 1,
     "image_url": "https://eliitoze.github.io/website/media/images/1774733360774-nhwfolasoq.jpg",
@@ -1185,7 +1198,7 @@
   },
   {
     "id": 172,
-    "name": "925 Sterling Silver Infinity ♾️ Chain Pendant",
+    "name": "925 Sterling Silver Infinity â¾ï¸ Chain Pendant",
     "price": 3299,
     "qty": 1,
     "image_url": "https://eliitoze.github.io/website/media/images/1774988378757-7tv2y.jpg",
