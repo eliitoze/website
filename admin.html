@@ -418,13 +418,24 @@ function showPanel(name, btn) {
   if (name === 'new-arrivals') loadNewArrivalsPanel();
 }
 
+// ════════════════ SUPABASE PRODUCTS FETCH ════════════════
+// Single helper — baaki badha functions aa use karse
+async function fetchProductsFromSupabase() {
+  try {
+    const { data, error } = await sb.from('products').select('*').order('id', { ascending: false });
+    if (error) throw new Error(error.message);
+    return Array.isArray(data) ? data : [];
+  } catch(e) {
+    console.error('[Admin] Supabase products fetch error:', e.message);
+    return [];
+  }
+}
+
 // ════════════════ STATS ════════════════
 async function loadStats() {
   try {
-    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/products.json?v=' + Date.now());
-    if (!res.ok) return;
-    const data = await res.json();
-    if (!Array.isArray(data)) return;
+    const data = await fetchProductsFromSupabase();
+    if (!data.length) return;
     document.getElementById('stat-total').textContent = data.length;
     document.getElementById('stat-instock').textContent = data.filter(p => p.qty > 0).length;
     document.getElementById('stat-outstock').textContent = data.filter(p => p.qty === 0).length;
@@ -440,8 +451,7 @@ async function loadLikeStats() {
     document.getElementById('stat-likes').textContent = total;
     const maxId = Object.entries(likes).sort((a,b) => b[1]-a[1])[0];
     if (maxId) {
-      const prodRes = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/products.json?v=' + Date.now());
-      const prods = await prodRes.json().catch(()=>[]);
+      const prods = await fetchProductsFromSupabase();
       const prod = prods.find(p => String(p.id) === String(maxId[0]));
       document.getElementById('stat-shares').textContent = prod ? prod.name.slice(0,12)+(prod.name.length>12?'…':'')+' ('+maxId[1]+')' : maxId[1];
     } else { document.getElementById('stat-shares').textContent = '—'; }
@@ -537,7 +547,6 @@ async function loadNewArrivalsPanel() {
   naSelectedIds.clear();
 
   try {
-    // Load current settings for existing new arrivals
     let currentNA = [];
     try {
       const r = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v=' + Date.now());
@@ -545,10 +554,8 @@ async function loadNewArrivalsPanel() {
     } catch(e) {}
     naSelectedIds = new Set(currentNA);
 
-    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/products.json?v=' + Date.now());
-    if (!res.ok) throw new Error();
-    naAllProducts = await res.json();
-    if (!Array.isArray(naAllProducts) || naAllProducts.length === 0) {
+    naAllProducts = await fetchProductsFromSupabase();
+    if (!naAllProducts.length) {
       grid.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No products found. Pahela products add karo.</p>';
       return;
     }
@@ -783,8 +790,7 @@ async function loadNoticeSettings() {
 async function loadManageTable() {
   const wrap = document.getElementById('manage-table-wrap');
   wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Loading...</p>';
-  let data = [];
-  try { const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/products.json?v='+Date.now()); if (!res.ok) throw new Error(); data = await res.json(); if (!Array.isArray(data)) data=[]; } catch(e) {}
+  const data = await fetchProductsFromSupabase();
   if (data.length === 0) { wrap.innerHTML='<p style="color:var(--text-muted);font-size:12px;">No products found.</p>'; return; }
   const rows = data.map(p => `
     <tr>
@@ -825,8 +831,7 @@ async function loadEditProducts() {
   const grid = document.getElementById('edit-product-grid');
   grid.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Loading...</p>';
   selectedEditIds.clear(); updateEditToolbar();
-  let data=[];
-  try { const res=await fetch('https://raw.githubusercontent.com/eliitoze/website/main/products.json?v='+Date.now()); if(!res.ok) throw new Error(); data=await res.json(); if(!Array.isArray(data)) data=[]; } catch(e){}
+  const data = await fetchProductsFromSupabase();
   if (data.length===0) { grid.innerHTML='<p style="color:var(--text-muted);font-size:12px;">No products found.</p>'; return; }
   allEditProducts = data;
   renderEditGrid();
