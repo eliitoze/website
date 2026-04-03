@@ -321,7 +321,7 @@ window.switchProductTab = function(tab) {
     return;
   }
 
-  allProducts = productsRes.value;
+  allProducts = productsRes.value.sort((a, b) => b.id - a.id);
   filterWrap.style.display = 'block';
   searchWrap.style.display = 'block';
   tabsWrap.style.display = 'block';
