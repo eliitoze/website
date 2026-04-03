@@ -12,6 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Eliitoze Jewelz" />
   <link rel="apple-touch-icon" href="icon-192.png" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -265,6 +266,16 @@ function closeModal(e) {
   }
 }
 
+// ── Tab switch (exposed globally - declare first)
+window.switchProductTab = function(tab) {
+  const newGrid = document.getElementById('new-arrivals-grid');
+  const allGrid = document.getElementById('products-grid');
+  document.getElementById('tab-new').classList.toggle('active', tab === 'new');
+  document.getElementById('tab-all').classList.toggle('active', tab === 'all');
+  if (tab === 'new') { newGrid.style.display='grid'; allGrid.style.display='none'; }
+  else { newGrid.style.display='none'; allGrid.style.display='grid'; }
+};
+
 // ── Main logic
 (async () => {
   const newGrid   = document.getElementById('new-arrivals-grid');
@@ -514,7 +525,7 @@ function closeModal(e) {
     }
   }
 
-  // ── Tab switch (exposed globally)
+  // ── Tab switch (full version overrides simple one above)
   window.switchProductTab = function(tab) {
     activeTab = tab;
     document.getElementById('tab-new').classList.toggle('active', tab === 'new');
