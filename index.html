@@ -188,7 +188,7 @@
 // ── Load Notice Banner
 (async () => {
   try {
-    const res = await fetch('settings.json?v=' + Date.now());
+    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v=' + Date.now());
     if (!res.ok) return;
     const s = (await res.json()).notice_banner;
     if (s && s.active && s.text) {
@@ -289,9 +289,9 @@ function closeModal(e) {
 
   // Load all data
   const [settingsRes, productsRes, likesRes] = await Promise.allSettled([
-    fetch('settings.json?v=' + Date.now()).then(r => r.json()),
-    fetch('products.json?v=' + Date.now()).then(r => r.json()),
-    fetch('likes.json?v=' + Date.now()).then(r => r.json())
+    fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v=' + Date.now()).then(r => r.json()),
+    fetch('https://raw.githubusercontent.com/eliitoze/website/main/products.json?v=' + Date.now()).then(r => r.json()),
+    fetch('https://raw.githubusercontent.com/eliitoze/website/main/likes.json?v=' + Date.now()).then(r => r.json())
   ]);
 
   if (settingsRes.status === 'fulfilled') {
