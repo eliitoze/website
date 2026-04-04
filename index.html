@@ -12,7 +12,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Eliitoze Jewelz" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -301,7 +300,11 @@ window.switchProductTab = function(tab) {
   // Load all data
   const [settingsRes, productsRes, likesRes] = await Promise.allSettled([
     fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v=' + Date.now()).then(r => r.json()),
-    fetch('https://raw.githubusercontent.com/eliitoze/website/main/products.json?v=' + Date.now()).then(r => r.json()),
+    fetch('https://eliitoze-worker.bhkmanish.workers.dev/db-write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operation: 'select', table: 'products' })
+    }).then(r => r.json()).then(res => Array.isArray(res.data) ? res.data : []),
     fetch('https://raw.githubusercontent.com/eliitoze/website/main/likes.json?v=' + Date.now()).then(r => r.json())
   ]);
 
