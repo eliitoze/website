@@ -102,26 +102,17 @@
 
   // ── Create a new push subscription (or reuse existing) ───────────
   async function createOrReuseSubscription(reg) {
-    // Always unsubscribe old subscription first to avoid VAPID key mismatch
-    let sub = await reg.pushManager.getSubscription();
-    if (sub) {
-      try {
-        await sub.unsubscribe();
-        console.log('[Push] Old subscription cleared ✓');
-      } catch(e) {
-        console.warn('[Push] Could not unsubscribe old:', e.message);
-      }
+    // Always clear old subscription first to avoid VAPID key mismatch errors
+    const oldSub = await reg.pushManager.getSubscription();
+    if (oldSub) {
+      try { await oldSub.unsubscribe(); } catch(_) {}
     }
 
     // Create fresh subscription with current VAPID key
-    try {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-      });
-    } catch(e) {
-      throw new Error('Push subscription failed: ' + e.message);
-    }
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly:      true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
 
     console.log('[Push] New subscription created ✓');
     await saveToSupabase(sub);
@@ -148,7 +139,7 @@
 
     const perm = await Notification.requestPermission();
     if (perm === 'granted') {
-      await subscribeDevice();
+      try { await subscribeDevice(); } catch(_) {}
     }
     return perm;
   }
@@ -164,7 +155,7 @@
 
     if (perm === 'granted') {
       // Already allowed — silently ensure subscription is fresh in DB
-      await subscribeDevice();
+      try { await subscribeDevice(); } catch(_) {}
       return;
     }
 

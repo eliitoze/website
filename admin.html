@@ -448,7 +448,7 @@ async function loadStats() {
 }
 async function loadLikeStats() {
   try {
-    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/likes.json?v=' + Date.now());
+    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/data/likes.json?v=' + Date.now());
     if (!res.ok) return;
     const likes = await res.json();
     const total = Object.values(likes).reduce((s,v) => s+(v||0), 0);
@@ -468,7 +468,7 @@ let subcatList = ['Necklace','Necklace Set','Bracelet','Chain','Ring','Anklet','
 
 async function loadSubcatManager() {
   try {
-    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v=' + Date.now());
+    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/data/settings.json?v=' + Date.now());
     if (res.ok) {
       const cfg = await res.json();
       if (Array.isArray(cfg.subcategories)) subcatList = cfg.subcategories;
@@ -526,7 +526,7 @@ async function saveSubcategories() {
     // Load existing settings first
     let existing = {};
     try {
-      const r = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v=' + Date.now());
+      const r = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/data/settings.json?v=' + Date.now());
       if (r.ok) existing = await r.json();
     } catch(e) {}
     existing.subcategories = subcatList;
@@ -553,7 +553,7 @@ async function loadNewArrivalsPanel() {
   try {
     let currentNA = [];
     try {
-      const r = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v=' + Date.now());
+      const r = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/data/settings.json?v=' + Date.now());
       if (r.ok) { const cfg = await r.json(); if (Array.isArray(cfg.new_arrivals)) currentNA = cfg.new_arrivals.map(String); }
     } catch(e) {}
     naSelectedIds = new Set(currentNA);
@@ -599,7 +599,7 @@ async function saveNewArrivals() {
   try {
     let existing = {};
     try {
-      const r = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v=' + Date.now());
+      const r = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/data/settings.json?v=' + Date.now());
       if (r.ok) existing = await r.json();
     } catch(e) {}
     existing.new_arrivals = [...naSelectedIds].map(Number);
@@ -768,7 +768,7 @@ async function saveNotice() {
   if (active && !text) { statusEl.textContent='⚠️ Banner ON chhe pan message khali chhe.'; statusEl.style.color='#E05050'; return; }
   try {
     let existing = {};
-    try { const r = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v='+Date.now()); if (r.ok) existing = await r.json(); } catch(e) {}
+    try { const r = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/data/settings.json?v='+Date.now()); if (r.ok) existing = await r.json(); } catch(e) {}
     existing.notice_banner = { active, text, color: selectedColor };
     await dbWrite('upsert', existing, undefined, 'site_settings');
   } catch(e) { statusEl.textContent='❌ Save failed: '+e.message; statusEl.style.color='#E05050'; return; }
@@ -778,7 +778,7 @@ async function saveNotice() {
 }
 async function loadNoticeSettings() {
   try {
-    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/settings.json?v=' + Date.now());
+    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/data/settings.json?v=' + Date.now());
     if (!res.ok) return;
     const cfg = await res.json();
     const s = cfg.notice_banner;
