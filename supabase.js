@@ -3,7 +3,7 @@
 //  Supabase removed — Neon + Cloudflare Worker only
 // ════════════════════════════════════════════════════════
 
-const WORKER_URL   = 'https://eliitoze-worker.bhkmanish.workers.dev';
+const WORKER_URL   = 'https://eliitoze-worker.bhkmanish.workers.dev/';
 const ADMIN_SECRET = 'Eliitoze@2025';
 const WA_NUMBER    = '919227096270';
 
