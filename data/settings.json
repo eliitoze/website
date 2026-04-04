@@ -1,5 +1,10 @@
 {
   "new_arrivals": [
     14
-  ]
+  ],
+  "notice_banner": {
+    "active": false,
+    "text": "50% discount on all imitation item only on sunday 5-4-2026",
+    "color": "#1a1a2e"
+  }
 }
