@@ -102,22 +102,26 @@
 
   // ── Create a new push subscription (or reuse existing) ───────────
   async function createOrReuseSubscription(reg) {
-    // Check if a subscription already exists for this browser
+    // Always unsubscribe old subscription first to avoid VAPID key mismatch
     let sub = await reg.pushManager.getSubscription();
-
     if (sub) {
-      // Subscription exists — ensure it's stored in DB (handles case where
-      // user cleared DB rows but browser still has subscription)
-      console.log('[Push] Existing subscription found — syncing to DB...');
-      await saveToSupabase(sub);
-      return sub;
+      try {
+        await sub.unsubscribe();
+        console.log('[Push] Old subscription cleared ✓');
+      } catch(e) {
+        console.warn('[Push] Could not unsubscribe old:', e.message);
+      }
     }
 
-    // Create fresh subscription
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly:      true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-    });
+    // Create fresh subscription with current VAPID key
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly:      true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    } catch(e) {
+      throw new Error('Push subscription failed: ' + e.message);
+    }
 
     console.log('[Push] New subscription created ✓');
     await saveToSupabase(sub);
