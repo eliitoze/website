@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — ELIITOZE JEWELZ</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase removed — Neon via Worker only -->
   <style>
     .notif-status-bar { display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;margin-bottom:20px;font-size:11px;letter-spacing:1px;color:var(--text-muted); }
     .notif-dot { width:8px;height:8px;border-radius:50%;background:var(--text-dim);flex-shrink:0; }
@@ -418,15 +418,19 @@ function showPanel(name, btn) {
   if (name === 'new-arrivals') loadNewArrivalsPanel();
 }
 
-// ════════════════ SUPABASE PRODUCTS FETCH ════════════════
-// Single helper — baaki badha functions aa use karse
+// ════════════════ NEON PRODUCTS FETCH (via Worker) ════════════════
 async function fetchProductsFromSupabase() {
   try {
-    const { data, error } = await sb.from('products').select('*').order('id', { ascending: false });
-    if (error) throw new Error(error.message);
-    return Array.isArray(data) ? data : [];
+    const resp = await fetch(window.WORKER_URL.replace(/\/$/,'') + '/db-write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': window.ADMIN_SECRET },
+      body: JSON.stringify({ operation: 'select', table: 'products' })
+    });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result.error || 'Fetch failed');
+    return Array.isArray(result.data) ? result.data : [];
   } catch(e) {
-    console.error('[Admin] Supabase products fetch error:', e.message);
+    console.error('[Admin] Products fetch error:', e.message);
     return [];
   }
 }
@@ -961,8 +965,11 @@ async function initNotifPanel() {
   if (perm==='granted') { dot.className='notif-dot active'; label.textContent='Notifications enabled'; btn.textContent='✓ Already Enabled'; btn.disabled=true; PushHandler.subscribeDevice(); }
   else if (perm==='denied') { dot.className='notif-dot denied'; label.textContent='Notifications blocked — browser settings thi allow karo'; btn.disabled=true; }
   else { dot.className='notif-dot'; label.textContent='Notifications not yet enabled'; btn.disabled=false; }
-  const { count } = await sb.from('push_subscriptions').select('id',{count:'exact',head:true});
-  document.getElementById('notif-sub-count').textContent=(count||0)+' subscribers';
+  try {
+    const r = await fetch(window.WORKER_URL.replace(/\/$/,'') + '/db-write', { method:'POST', headers:{'Content-Type':'application/json','X-Admin-Secret':window.ADMIN_SECRET}, body:JSON.stringify({operation:'select',table:'push_subscriptions'}) });
+    const res = await r.json();
+    document.getElementById('notif-sub-count').textContent = ((res.data||[]).length) + ' subscribers';
+  } catch(e) { document.getElementById('notif-sub-count').textContent = '— subscribers'; }
 }
 
 async function subscribeThisDevice() {
@@ -976,8 +983,11 @@ async function subscribeThisDevice() {
     document.getElementById('notif-permission-dot').className='notif-dot active';
     document.getElementById('notif-permission-label').textContent='Notifications enabled';
     btn.textContent='✓ Enabled';
-    const { count }=await sb.from('push_subscriptions').select('id',{count:'exact',head:true});
-    document.getElementById('notif-sub-count').textContent=(count||0)+' subscribers';
+    try {
+      const r = await fetch(window.WORKER_URL.replace(/\/$/,'') + '/db-write', { method:'POST', headers:{'Content-Type':'application/json','X-Admin-Secret':window.ADMIN_SECRET}, body:JSON.stringify({operation:'select',table:'push_subscriptions'}) });
+      const res = await r.json();
+      document.getElementById('notif-sub-count').textContent = ((res.data||[]).length) + ' subscribers';
+    } catch(e) {}
   } catch(err) { statusEl.textContent='❌ Error: '+err.message; statusEl.style.color='#E05050'; btn.disabled=false; }
 }
 
