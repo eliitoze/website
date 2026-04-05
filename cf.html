@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CF Worker Manager v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg:#090b10; --surface:#111520; --card:#161b28; --border:#222d45;
+  --cf:#f6821f; --cf2:#ffaa4d; --blue:#3d9eff; --green:#1fd97a;
+  --red:#ff4d4d; --yellow:#f5c518; --text:#d8e3f5; --muted:#4e607f; --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;padding-bottom:64px}
+
+/* HEADER */
+.hdr{background:#0d1018;border-bottom:1px solid var(--border);padding:12px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200}
+.hdr-logo{width:32px;height:32px;background:var(--cf);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.hdr-info{flex:1;min-width:0}
+.hdr-title{font-size:.9rem;font-weight:700;color:var(--cf)}
+.hdr-sub{font-size:.63rem;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acct-chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:.67rem;font-family:'JetBrains Mono',monospace;color:var(--cf);cursor:pointer;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.acct-chip:hover{border-color:var(--cf)}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:#0d1018;border-top:1px solid var(--border);display:flex;z-index:200}
+.nb{flex:1;padding:9px 0 7px;text-align:center;cursor:pointer;color:var(--muted);font-size:.58rem;font-weight:600;transition:color .15s}
+.nb .ni{font-size:1.1rem;display:block;margin-bottom:1px}
+.nb.on{color:var(--cf)}
+
+/* PAGES */
+.pg{display:none;padding:14px}
+.pg.on{display:block}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.clabel{font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px}
+
+/* INPUTS */
+label{font-size:.75rem;color:var(--muted);display:block;margin-bottom:5px;margin-top:10px}
+label:first-child{margin-top:0}
+input[type=text],input[type=password],select,textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.75rem;padding:9px 12px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--cf)}
+select option{background:var(--card)}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:38px}
+.eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8rem;transition:all .18s;white-space:nowrap}
+.btn-cf{background:var(--cf);color:#000}.btn-cf:hover{background:var(--cf2)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-ghost{background:var(--surface);border:1px solid var(--border);color:var(--text)}.btn-ghost:hover{border-color:var(--cf)}
+.btn-red{background:transparent;border:1px solid var(--red);color:var(--red)}
+.btn-full{width:100%}
+.btn-sm{padding:6px 11px;font-size:.71rem}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+/* ACCOUNT CARD */
+.acct-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .18s}
+.acct-card:hover,.acct-card.cur{border-color:var(--cf);background:#1d2235}
+.av{width:36px;height:36px;border-radius:8px;background:var(--cf);display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:1rem;flex-shrink:0}
+.acct-info{flex:1;min-width:0}
+.acct-name{font-size:.87rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acct-id{font-size:.63rem;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.dot{width:8px;height:8px;background:var(--green);border-radius:50%;flex-shrink:0}
+
+/* WORKER CARD */
+.wcard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .18s}
+.wcard:hover{border-color:var(--cf);background:#1d2235}
+.wcard-info{flex:1;min-width:0}
+.wcard-name{font-size:.87rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wcard-meta{font-size:.63rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px}
+
+/* CODE AREA */
+.ed-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.ed-name{font-size:.93rem;font-weight:700;color:var(--cf);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-tb{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+#codeArea{width:100%;background:#080c12;border:1px solid var(--border);border-radius:9px;color:#c9d1d9;font-family:'JetBrains Mono',monospace;font-size:.7rem;line-height:1.75;padding:14px;resize:vertical;min-height:52vh;outline:none;tab-size:2;white-space:pre;overflow-x:auto}
+#codeArea:focus{border-color:var(--cf)}
+
+/* UPLOAD ZONE */
+.uzone{border:2px dashed var(--border);border-radius:10px;padding:24px 14px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:10px}
+.uzone:hover,.uzone.drag{border-color:var(--blue);background:rgba(61,158,255,.05)}
+.uzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uzone .zi{font-size:1.8rem;margin-bottom:5px}
+.uzone p{font-size:.74rem;color:var(--muted);margin-top:3px}
+
+/* LOG */
+.logbox{background:#060911;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:.66rem;max-height:180px;overflow-y:auto;line-height:1.8;color:var(--muted)}
+.logbox .ok{color:var(--green)}.logbox .err{color:var(--red)}.logbox .info{color:var(--cf)}.logbox .warn{color:var(--yellow)}
+
+/* PILL */
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:.6rem;font-family:'JetBrains Mono',monospace;border-radius:20px;padding:2px 8px;border:1px solid}
+.pg{border-color:var(--green);color:var(--green);background:rgba(31,217,122,.1)}
+.pc{border-color:var(--cf);color:var(--cf);background:rgba(246,130,31,.12)}
+.pm{border-color:var(--border);color:var(--muted);background:var(--surface)}
+
+/* TOAST */
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--card);border-radius:20px;padding:9px 20px;font-size:.77rem;font-weight:600;z-index:999;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.6);display:none}
+.toast.show{display:block;animation:tup .22s ease}
+.toast.tok{border:1px solid var(--green);color:var(--green)}
+.toast.terr{border:1px solid var(--red);color:var(--red)}
+@keyframes tup{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* SPINNER */
+.sp{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.15);border-top-color:currentColor;border-radius:50%;animation:rot .5s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* MISC */
+.empty{text-align:center;padding:34px 16px;color:var(--muted)}
+.empty .ei{font-size:2.2rem;margin-bottom:8px}
+.empty p{font-size:.79rem}
+.shdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:4px}
+.stitle{font-size:.87rem;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">☁️</div>
+  <div class="hdr-info">
+    <div class="hdr-title">CF Worker Manager</div>
+    <div class="hdr-sub" id="hdrSub">No account selected</div>
+  </div>
+  <div class="acct-chip" id="hdrChip" onclick="goPage('pgAccounts','nbAccounts')">+ Account</div>
+</div>
+
+<!-- PAGE: Accounts -->
+<div class="pg on" id="pgAccounts">
+  <div class="shdr">
+    <div class="stitle">Accounts</div>
+    <span class="pill pm" id="acctCount">0 saved</span>
+  </div>
+  <div id="acctList"></div>
+  <div class="card">
+    <div class="clabel">➕ Add New Account</div>
+    <label>Nickname</label>
+    <input type="text" id="newNick" placeholder="e.g. Eliitoze" />
+    <label>Account ID</label>
+    <div class="pw-wrap">
+      <input type="password" id="newAcctId" placeholder="32-char Account ID" />
+      <button class="eye" onclick="tv('newAcctId',this)">👁</button>
+    </div>
+    <label>API Token <small style="color:var(--muted);font-size:.65rem">(Workers:Edit permission)</small></label>
+    <div class="pw-wrap">
+      <input type="password" id="newToken" placeholder="Cloudflare API Token" />
+      <button class="eye" onclick="tv('newToken',this)">👁</button>
+    </div>
+    <div class="row">
+      <button class="btn btn-cf" style="flex:1" onclick="addAccount()">💾 Save Account</button>
+    </div>
+  </div>
+  <div class="card" style="font-size:.73rem;color:var(--muted);line-height:2">
+    <div class="clabel">📖 Credentials ক્યાંથી</div>
+    <b style="color:var(--text)">Account ID:</b> dash.cloudflare.com → Right sidebar<br>
+    <b style="color:var(--text)">API Token:</b> Profile → API Tokens → Create Token<br>
+    → Template: <b style="color:var(--cf)">"Edit Cloudflare Workers"</b>
+  </div>
+</div>
+
+<!-- PAGE: Workers -->
+<div class="pg" id="pgWorkers">
+  <div class="shdr">
+    <div class="stitle">Workers</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="pill pc" id="wCount">—</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadWorkers()">↻ Refresh</button>
+    </div>
+  </div>
+  <div id="workerList">
+    <div class="empty"><div class="ei">☁️</div><p>Account select karo ne Workers tab open karo</p></div>
+  </div>
+</div>
+
+<!-- PAGE: Editor -->
+<div class="pg" id="pgEditor">
+  <div class="ed-hdr">
+    <div class="ed-name" id="edName">No worker</div>
+    <span class="pill pm" id="edSt">—</span>
+  </div>
+  <div class="ed-tb">
+    <button class="btn btn-cf" onclick="deployCode()" id="btnDeploy">🚀 Deploy</button>
+    <button class="btn btn-ghost btn-sm" onclick="reloadCode()">↻</button>
+    <button class="btn btn-ghost btn-sm" onclick="copyCode()">📋</button>
+  </div>
+  <textarea id="codeArea" spellcheck="false" placeholder="// Worker tap karo to code load thashe…"></textarea>
+  <div style="margin-top:12px">
+    <div class="clabel" style="margin-bottom:7px">📄 .js File → Editor ma load karo</div>
+    <div class="uzone" id="edUzone">
+      <input type="file" accept=".js,.mjs,.txt" onchange="fileToEditor(this)" />
+      <div class="zi">📄</div>
+      <strong style="font-size:.82rem">Tap to pick .js file</strong>
+      <p>Content editor ma load thashe → Deploy karo</p>
+    </div>
+  </div>
+  <div class="card" id="edLogCard" style="display:none;margin-top:10px">
+    <div class="clabel">Deploy Log</div>
+    <div class="logbox" id="edLog"></div>
+  </div>
+</div>
+
+<!-- PAGE: Upload & Deploy -->
+<div class="pg" id="pgUpload">
+  <div class="shdr"><div class="stitle">Upload & Deploy</div></div>
+  <div class="card">
+    <div class="clabel">Target</div>
+    <label>Account</label>
+    <select id="upAcctSel"></select>
+    <label>Worker Name <small style="color:var(--muted)">(existing ya new)</small></label>
+    <input type="text" id="upName" placeholder="e.g. worker_neon" />
+  </div>
+  <div class="card">
+    <div class="clabel">File Select</div>
+    <div class="uzone" id="upUzone">
+      <input type="file" accept=".js,.mjs,.txt" onchange="handleUp(this)" />
+      <div class="zi">📦</div>
+      <strong style="font-size:.82rem">Tap to choose .js file</strong>
+      <p>Select → Deploy directly to Cloudflare</p>
+    </div>
+    <div id="upInfo" style="font-size:.75rem;color:var(--cf);display:none;padding:4px 0"></div>
+  </div>
+  <button class="btn btn-cf btn-full" onclick="uploadDeploy()" id="btnUp" disabled>🚀 Upload & Deploy</button>
+  <div class="card" id="upLogCard" style="display:none;margin-top:10px">
+    <div class="clabel">Log</div>
+    <div class="logbox" id="upLog"></div>
+  </div>
+</div>
+
+<!-- PAGE: Logs/Info -->
+<div class="pg" id="pgLogs">
+  <div class="shdr"><div class="stitle">Worker Info</div></div>
+  <div class="card">
+    <label>Account</label>
+    <select id="logAcctSel" onchange="syncLogWorkers()"></select>
+    <label style="margin-top:10px">Worker</label>
+    <select id="logWorkerSel"></select>
+    <div class="row">
+      <button class="btn btn-blue" style="flex:1" onclick="fetchInfo()">🔍 Fetch Info</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('logBox').innerHTML=''">🗑</button>
+    </div>
+  </div>
+  <div class="logbox" id="logBox" style="min-height:160px;max-height:55vh">
+    <span style="color:var(--muted)">// Info yahan aashe…</span>
+  </div>
+</div>
+
+<div class="bnav">
+  <div class="nb on" id="nbAccounts" onclick="goPage('pgAccounts','nbAccounts')"><span class="ni">👤</span>Accounts</div>
+  <div class="nb" id="nbWorkers"  onclick="goPage('pgWorkers','nbWorkers')"><span class="ni">☁️</span>Workers</div>
+  <div class="nb" id="nbEditor"   onclick="goPage('pgEditor','nbEditor')"><span class="ni">✏️</span>Editor</div>
+  <div class="nb" id="nbUpload"   onclick="goPage('pgUpload','nbUpload')"><span class="ni">⬆️</span>Upload</div>
+  <div class="nb" id="nbLogs"     onclick="goPage('pgLogs','nbLogs')"><span class="ni">📋</span>Info</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LS='cfmgr_v2';
+let accounts=[], activeAcct=null, workers=[], activeWorker=null, upContent=null;
+
+// ── INIT
+window.addEventListener('DOMContentLoaded',()=>{
+  try{
+    const d=JSON.parse(localStorage.getItem(LS)||'{}');
+    accounts=d.accounts||[];
+    activeAcct=accounts.find(a=>a.id===d.activeId)||accounts[0]||null;
+  }catch(e){accounts=[];}
+  renderAccts(); syncSelects(); updateHdr();
+  if(activeAcct) loadWorkers();
+});
+
+function save(){
+  localStorage.setItem(LS,JSON.stringify({accounts,activeId:activeAcct?.id}));
+}
+
+// ── ACCOUNTS
+function addAccount(){
+  const nick=document.getElementById('newNick').value.trim()||'Account';
+  const aid=document.getElementById('newAcctId').value.trim();
+  const tok=document.getElementById('newToken').value.trim();
+  if(!aid||!tok){toast('Account ID & Token bharo!','err');return;}
+  const a={id:Date.now().toString(36),nick,accountId:aid,token:tok};
+  accounts.push(a);
+  if(!activeAcct){activeAcct=a;}
+  save(); renderAccts(); syncSelects(); updateHdr();
+  document.getElementById('newNick').value='';
+  document.getElementById('newAcctId').value='';
+  document.getElementById('newToken').value='';
+  toast(`✓ "${nick}" saved!`,'ok');
+}
+
+function setActive(id){
+  activeAcct=accounts.find(a=>a.id===id)||null;
+  save(); renderAccts(); updateHdr();
+  loadWorkers();
+  goPage('pgWorkers','nbWorkers');
+}
+
+function delAcct(id){
+  const a=accounts.find(x=>x.id===id);
+  if(!confirm(`"${a?.nick}" delete karvu?`))return;
+  accounts=accounts.filter(x=>x.id!==id);
+  if(activeAcct?.id===id) activeAcct=accounts[0]||null;
+  save(); renderAccts(); syncSelects(); updateHdr();
+  toast('Account removed','ok');
+}
+
+function renderAccts(){
+  document.getElementById('acctCount').textContent=`${accounts.length} saved`;
+  const el=document.getElementById('acctList');
+  if(!accounts.length){
+    el.innerHTML=`<div class="empty"><div class="ei">👤</div><p>Koi account nathi</p></div>`;return;
+  }
+  el.innerHTML=accounts.map(a=>`
+    <div class="acct-card${activeAcct?.id===a.id?' cur':''}" onclick="setActive('${a.id}')">
+      <div class="av">${esc(a.nick[0]).toUpperCase()}</div>
+      <div class="acct-info">
+        <div class="acct-name">${esc(a.nick)}</div>
+        <div class="acct-id">${a.accountId.slice(0,8)}…${a.accountId.slice(-4)}</div>
+      </div>
+      ${activeAcct?.id===a.id?'<div class="dot"></div>':''}
+      <button style="color:var(--red);font-size:1rem;background:none;border:none;cursor:pointer;padding:4px;flex-shrink:0" onclick="event.stopPropagation();delAcct('${a.id}')">🗑</button>
+    </div>
+  `).join('');
+}
+
+function updateHdr(){
+  const chip=document.getElementById('hdrChip');
+  const sub=document.getElementById('hdrSub');
+  if(activeAcct){chip.textContent=activeAcct.nick;sub.textContent=activeAcct.accountId.slice(0,8)+'…'+activeAcct.accountId.slice(-4);}
+  else{chip.textContent='+ Account';sub.textContent='No account selected';}
+}
+
+// ── WORKERS
+async function loadWorkers(){
+  if(!activeAcct){toast('Account select karo!','err');return;}
+  const el=document.getElementById('workerList');
+  el.innerHTML=`<div class="empty"><div class="sp" style="width:24px;height:24px;border-width:3px;color:var(--cf)"></div><p style="margin-top:10px">Loading…</p></div>`;
+  try{
+    const res=await cfGet(activeAcct,`/accounts/${activeAcct.accountId}/workers/scripts`);
+    const d=await res.json();
+    if(!d.success)throw new Error(d.errors?.[0]?.message||'API Error');
+    workers=d.result||[];
+    document.getElementById('wCount').textContent=`${workers.length} workers`;
+    syncLogWorkers();
+    if(!workers.length){el.innerHTML=`<div class="empty"><div class="ei">🤷</div><p>No workers found</p></div>`;return;}
+    el.innerHTML=workers.map(w=>`
+      <div class="wcard" onclick="openWorker('${esc(w.id)}')">
+        <div style="font-size:1.3rem;flex-shrink:0">⚡</div>
+        <div class="wcard-info">
+          <div class="wcard-name">${esc(w.id)}</div>
+          <div class="wcard-meta">${w.modified_on?new Date(w.modified_on).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</div>
+        </div>
+        <div style="color:var(--muted);font-size:1.1rem">›</div>
+      </div>
+    `).join('');
+  }catch(e){
+    el.innerHTML=`<div class="empty"><div class="ei">❌</div><p>${esc(e.message)}</p></div>`;
+    toast(e.message,'err');
+  }
+}
+
+// ── EDITOR
+async function openWorker(name){
+  if(!activeAcct){toast('Account select karo!','err');return;}
+  activeWorker=name;
+  document.getElementById('edName').textContent=name;
+  setEdSt('loading…','pm');
+  document.getElementById('codeArea').value='// Loading…';
+  goPage('pgEditor','nbEditor');
+  await reloadCode();
+}
+
+async function reloadCode(){
+  if(!activeWorker||!activeAcct)return;
+  setEdSt('fetching…','pm');
+  try{
+    const res=await cfGet(activeAcct,`/accounts/${activeAcct.accountId}/workers/scripts/${activeWorker}`,{'Accept':'application/javascript'});
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const code=await res.text();
+    document.getElementById('codeArea').value=code;
+    setEdSt(`✓ ${(code.length/1024).toFixed(1)}KB`,'pg');
+    edLog('ok',`Code loaded — ${(code.length/1024).toFixed(1)} KB`);
+  }catch(e){setEdSt('error','terr-p');edLog('err',e.message);toast(e.message,'err');}
+}
+
+async function deployCode(){
+  if(!activeWorker||!activeAcct){toast('Worker select karo!','err');return;}
+  const code=document.getElementById('codeArea').value.trim();
+  if(!code){toast('Code empty!','err');return;}
+  const btn=document.getElementById('btnDeploy');
+  btn.innerHTML='<div class="sp"></div> Deploying…';btn.disabled=true;
+  document.getElementById('edLogCard').style.display='block';
+  edLog('info',`Deploying ${activeWorker}…`);
+  try{
+    await doDeploy(activeAcct,activeWorker,code);
+    edLog('ok',`✓ ${activeWorker} deployed!`);
+    setEdSt('deployed ✓','pg');
+    toast(`✅ ${activeWorker} live!`,'ok');
+    loadWorkers();
+  }catch(e){edLog('err',e.message);toast(e.message,'err');}
+  btn.innerHTML='🚀 Deploy';btn.disabled=false;
+}
+
+function fileToEditor(inp){
+  const f=inp.files[0];if(!f)return;
+  new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f);})
+  .then(txt=>{document.getElementById('codeArea').value=txt;toast(`${f.name} loaded!`,'ok');edLog('ok',`${f.name} — ${(f.size/1024).toFixed(1)} KB`);document.getElementById('edLogCard').style.display='block';});
+}
+
+function copyCode(){
+  navigator.clipboard.writeText(document.getElementById('codeArea').value).then(()=>toast('Copied!','ok'));
+}
+
+function setEdSt(txt,cls){
+  const el=document.getElementById('edSt');
+  el.textContent=txt;el.className=`pill ${cls}`;
+}
+
+// ── UPLOAD & DEPLOY
+function syncSelects(){
+  const opts=accounts.map(a=>`<option value="${a.id}">${esc(a.nick)} (${a.accountId.slice(0,6)}…)</option>`).join('');
+  document.getElementById('upAcctSel').innerHTML=opts||'<option>— No accounts —</option>';
+  document.getElementById('logAcctSel').innerHTML=opts||'<option>— No accounts —</option>';
+}
+
+function syncLogWorkers(){
+  const lw=document.getElementById('logWorkerSel');
+  lw.innerHTML=workers.map(w=>`<option value="${esc(w.id)}">${esc(w.id)}</option>`).join('')||'<option>— Load workers first —</option>';
+}
+
+function handleUp(inp){
+  const f=inp.files[0];if(!f)return;
+  new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f);})
+  .then(txt=>{
+    upContent=txt;
+    document.getElementById('upInfo').style.display='block';
+    document.getElementById('upInfo').textContent=`📄 ${f.name} — ${(f.size/1024).toFixed(1)} KB ready`;
+    document.getElementById('btnUp').disabled=false;
+  });
+}
+
+async function uploadDeploy(){
+  const aid=document.getElementById('upAcctSel').value;
+  const name=document.getElementById('upName').value.trim();
+  if(!aid){toast('Account select karo!','err');return;}
+  if(!name){toast('Worker name bharo!','err');return;}
+  if(!upContent){toast('File select karo!','err');return;}
+  const acct=accounts.find(a=>a.id===aid);
+  if(!acct){toast('Account not found','err');return;}
+  const btn=document.getElementById('btnUp');
+  btn.innerHTML='<div class="sp"></div> Deploying…';btn.disabled=true;
+  document.getElementById('upLogCard').style.display='block';
+  upLog('info',`Deploying ${name} → ${acct.nick}…`);
+  try{
+    await doDeploy(acct,name,upContent);
+    upLog('ok',`✓ ${name} deployed!`);
+    toast(`✅ ${name} live!`,'ok');
+    loadWorkers();
+  }catch(e){upLog('err',e.message);toast(e.message,'err');}
+  btn.innerHTML='🚀 Upload & Deploy';btn.disabled=false;
+}
+
+// ── INFO/LOGS
+async function fetchInfo(){
+  const aid=document.getElementById('logAcctSel').value;
+  const wname=document.getElementById('logWorkerSel').value;
+  if(!aid||!wname){toast('Account & Worker select karo!','err');return;}
+  const acct=accounts.find(a=>a.id===aid);if(!acct)return;
+  const box=document.getElementById('logBox');box.innerHTML='';
+  addL(box,'info',`Fetching info: ${wname}`);
+  try{
+    const sr=await cfGet(acct,`/accounts/${acct.accountId}/workers/scripts/${wname}/schedules`);
+    const sd=await sr.json();
+    if(sd.success){
+      const s=sd.result?.schedules||[];
+      s.length?s.forEach(x=>addL(box,'ok',`Cron: ${x.cron}`)):addL(box,'info','No cron — HTTP trigger worker');
+    }
+    const subr=await cfGet(acct,`/accounts/${acct.accountId}/workers/subdomain`);
+    const subd=await subr.json();
+    if(subd.success&&subd.result?.subdomain) addL(box,'ok',`URL: https://${wname}.${subd.result.subdomain}.workers.dev`);
+    const mr=await cfGet(acct,`/accounts/${acct.accountId}/workers/scripts/${wname}`,{'Accept':'application/json'});
+    addL(box, mr.ok?'ok':'warn', mr.ok?'Script accessible':'Script fetch failed');
+    addL(box,'ok','✓ Done');
+  }catch(e){addL(box,'err',e.message);}
+}
+
+// ── CORE
+async function doDeploy(acct,name,code){
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify({main_module:'worker.js',compatibility_date:'2024-01-01'})],{type:'application/json'}),'metadata.json');
+  form.append('worker.js',new Blob([code],{type:'application/javascript+module'}),'worker.js');
+  const res=await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct.accountId}/workers/scripts/${name}`,{method:'PUT',headers:{'Authorization':`Bearer ${acct.token}`},body:form});
+  const d=await res.json();
+  if(!d.success)throw new Error(d.errors?.[0]?.message||'Deploy failed');
+  return d;
+}
+
+function cfGet(acct,path,extraH={}){
+  return fetch(`https://api.cloudflare.com/client/v4${path}`,{headers:{'Authorization':`Bearer ${acct.token}`,'Content-Type':'application/json',...extraH}});
+}
+
+// ── UTILS
+function tv(id,btn){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';btn.textContent=i.type==='password'?'👁':'🙈';}
+function goPage(pg,nb){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.getElementById(pg).classList.add('on');
+  document.getElementById(nb).classList.add('on');
+}
+function toast(msg,type){
+  const t=document.getElementById('toast');t.textContent=msg;t.className=`toast show ${type==='ok'?'tok':'terr'}`;
+  setTimeout(()=>t.className='toast',2800);
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function ts(){return new Date().toLocaleTimeString('en',{hour12:false});}
+function edLog(t,m){const b=document.getElementById('edLog');const d=document.createElement('div');d.className=t;d.textContent=`[${ts()}] ${m}`;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+function upLog(t,m){const b=document.getElementById('upLog');const d=document.createElement('div');d.className=t;d.textContent=`[${ts()}] ${m}`;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+function addL(box,t,m){const d=document.createElement('div');d.className=t;d.textContent=`[${ts()}] ${m}`;box.appendChild(d);box.scrollTop=box.scrollHeight;}
+
+// Drag-drop
+['edUzone','upUzone'].forEach(id=>{
+  const z=document.getElementById(id);
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag')});
+  z.addEventListener('dragleave',()=>z.classList.remove('drag'));
+  z.addEventListener('drop',e=>{
+    e.preventDefault();z.classList.remove('drag');
+    const f=e.dataTransfer.files[0];if(!f)return;
+    const r=new FileReader();
+    if(id==='edUzone'){r.onload=ev=>{document.getElementById('codeArea').value=ev.target.result;toast(`${f.name} loaded!`,'ok');};}
+    else{r.onload=ev=>{upContent=ev.target.result;document.getElementById('upInfo').style.display='block';document.getElementById('upInfo').textContent=`📄 ${f.name}`;document.getElementById('btnUp').disabled=false;toast(`${f.name} ready!`,'ok');};}
+    r.readAsText(f);
+  });
+});
+</script>
+</body>
+</html>
