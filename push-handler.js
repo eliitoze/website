@@ -12,7 +12,7 @@
   'use strict';
 
   // ── Config ────────────────────────────────────────────────────────
-  const VAPID_PUBLIC_KEY = 'BM9NNO-kYPRNB_9SC35EG1EYD4hkCVufYHlcF2F51pFxcbnjWwpUQnU9O4BfVMS4zwDAYefDfkidEP1mF39QXTE';
+  const VAPID_PUBLIC_KEY = 'BF1UCKQsbyW9V3QysGCO41U-AtPvyyKGMWSN3-Oc0GLzX4VlUguz7q89tapldmI7CYE6HCkBGEOOz5ctu-ouxSc';
   // SW path must match your GitHub Pages path (scope /website/)
   const SW_SCOPE    = '/website/';
   const SW_PATH     = '/website/sw.js';
@@ -102,18 +102,16 @@
 
   // ── Create a new push subscription (or reuse existing) ───────────
   async function createOrReuseSubscription(reg) {
-    // Always clear old subscription first to avoid VAPID key mismatch errors
-    const oldSub = await reg.pushManager.getSubscription();
-    if (oldSub) {
-      try { await oldSub.unsubscribe(); } catch(_) {}
+    // Always clear old subscription to fix VAPID key mismatch
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      try { await existing.unsubscribe(); } catch(_) {}
     }
-
-    // Create fresh subscription with current VAPID key
+    // Fresh subscription with current VAPID key
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly:      true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
-
     console.log('[Push] New subscription created ✓');
     await saveToSupabase(sub);
     return sub;

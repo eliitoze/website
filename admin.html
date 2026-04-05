@@ -49,6 +49,11 @@
     .na-card img { width:100%;height:90px;object-fit:cover;display:block;margin-bottom:6px; }
     .na-card-name { font-size:10px;letter-spacing:1px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
     .na-badge { position:absolute;top:6px;left:6px;background:var(--gold);color:#000;font-size:8px;letter-spacing:1px;padding:2px 6px;font-weight:700; }
+
+    /* Inline edit table */
+    .inline-edit { background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 7px;font-family:inherit;font-size:11px;letter-spacing:0.5px;width:100%;box-sizing:border-box;border-radius:0; }
+    .inline-edit:focus { outline:none;border-color:var(--gold); }
+    select.inline-edit { cursor:pointer; }
   </style>
 </head>
 <body>
@@ -208,16 +213,17 @@
     <!-- ✨ New Arrivals Manager -->
     <div class="admin-panel" id="panel-new-arrivals">
       <div class="panel-title">✨ New Arrivals</div>
-      <p style="font-size:12px;color:var(--text-muted);letter-spacing:1px;margin-bottom:16px;">
-        Products select karo jo "New Arrivals" tab ma dikhava joiye. Selected products homepage par top par dekhase.
+      <p style="font-size:12px;color:var(--text-muted);letter-spacing:1px;margin-bottom:12px;">
+        Products select karo jo "New Arrivals" tab ma dikhava joiye.
       </p>
-      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;">
-        <span style="font-size:11px;color:var(--text-muted);letter-spacing:1px;" id="na-sel-count">0 selected</span>
-        <button class="btn-submit" onclick="saveNewArrivals()" style="padding:10px 24px;">💾 Save New Arrivals</button>
-      </div>
-      <div class="status-msg" id="na-save-status" style="margin-bottom:12px;font-size:12px;"></div>
+      <div class="status-msg" id="na-save-status" style="margin-bottom:8px;font-size:12px;"></div>
       <div class="new-arrival-grid" id="na-grid">
         <p style="color:var(--text-muted);font-size:12px;">Loading products...</p>
+      </div>
+      <!-- Sticky save bar at bottom -->
+      <div style="position:sticky;bottom:0;background:var(--bg2);border-top:1px solid var(--gold-dark);padding:14px 16px;margin-top:16px;display:flex;align-items:center;gap:16px;z-index:50;">
+        <span style="font-size:11px;color:var(--gold);letter-spacing:1px;" id="na-sel-count">0 selected</span>
+        <button class="btn-submit" onclick="saveNewArrivals()" style="padding:10px 32px;margin-left:auto;">💾 Save New Arrivals</button>
       </div>
     </div>
 
@@ -269,19 +275,20 @@
     <!-- Edit Products -->
     <div class="admin-panel" id="panel-edit-products">
       <div class="panel-title">Edit Products</div>
-      <div class="edit-toolbar">
-        <span class="sel-count" id="edit-sel-count">0 selected</span>
-        <button class="btn-bulk-edit" id="btn-open-bulk-edit" onclick="openBulkEditModal()" disabled>✏️ Edit Selected</button>
-        <button class="btn-bulk-delete" id="btn-bulk-delete" onclick="bulkDeleteProducts()" disabled>✕ Delete Selected</button>
-      </div>
       <label class="select-all-row">
         <input type="checkbox" id="edit-select-all" onchange="toggleSelectAll(this)" />
-        Select All Products
+        Select All
       </label>
       <div class="edit-product-grid" id="edit-product-grid">
         <p style="color:var(--text-muted);font-size:12px;">Loading products...</p>
       </div>
       <div class="status-msg" id="edit-status" style="margin-top:12px;font-size:12px;"></div>
+      <!-- Sticky bottom action bar -->
+      <div id="edit-sticky-bar" style="display:none;position:sticky;bottom:0;background:var(--bg2);border-top:1px solid var(--gold-dark);padding:14px 16px;z-index:50;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;">
+        <span class="sel-count" id="edit-sel-count" style="font-size:11px;letter-spacing:2px;color:var(--gold);margin-right:auto;">0 selected</span>
+        <button class="btn-bulk-edit" id="btn-open-bulk-edit" onclick="openBulkEditModal()" disabled>✏️ Edit Selected</button>
+        <button class="btn-bulk-delete" id="btn-bulk-delete" onclick="bulkDeleteProducts()" disabled>✕ Delete</button>
+      </div>
     </div>
 
     <!-- Push Notifications -->
@@ -790,35 +797,117 @@ async function loadNoticeSettings() {
   } catch(e) {}
 }
 
-// ════════════════ MANAGE TABLE ════════════════
+// ════════════════ MANAGE TABLE — Full Inline Edit ════════════════
 async function loadManageTable() {
   const wrap = document.getElementById('manage-table-wrap');
   wrap.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Loading...</p>';
   const data = await fetchProductsFromSupabase();
   if (data.length === 0) { wrap.innerHTML='<p style="color:var(--text-muted);font-size:12px;">No products found.</p>'; return; }
-  const rows = data.map(p => `
-    <tr>
-      <td><img src="${p.image_url||''}" alt="" /></td>
-      <td>${p.name}</td>
-      <td>${p.category||'—'}</td>
-      <td>${p.gender||'—'}</td>
-      <td>₹${p.price}</td>
-      <td>${p.discount_price ? '₹'+p.discount_price : '—'}</td>
-      <td><input class="qty-edit" type="number" value="${p.qty}" min="0" id="qty-${p.id}" /></td>
-      <td><span class="badge-stock ${p.qty>0?'badge-in':'badge-out'}">${p.qty>0?'In Stock':'Out'}</span></td>
+
+  // Load subcats for dropdown
+  let subcats = subcatList || ['Necklace','Necklace Set','Bracelet','Chain','Ring','Anklet','Earring','Mala','Kada','Pendant','Bangle'];
+
+  const rows = data.map(p => {
+    const subcatOpts = subcats.map(s => `<option value="${s}" ${p.subcategory===s?'selected':''}>${s}</option>`).join('');
+    return `<tr id="row-${p.id}">
+      <td style="min-width:80px">
+        <img src="${p.image_url||''}" alt="" style="width:60px;height:60px;object-fit:cover;border:1px solid var(--border);display:block;cursor:pointer;" onclick="document.getElementById('img-replace-${p.id}').click()" title="Click to change image" />
+        <input type="file" id="img-replace-${p.id}" accept="image/*" style="display:none" onchange="replaceProductImage(${p.id},this)" />
+        <div style="font-size:9px;color:var(--gold);text-align:center;margin-top:2px;letter-spacing:1px;">TAP TO CHANGE</div>
+      </td>
+      <td><input class="inline-edit" type="text" value="${p.name.replace(/"/g,'&quot;')}" id="name-${p.id}" style="width:100%;min-width:130px" /></td>
       <td>
-        <button class="btn-update" onclick="updateQty(${p.id})">Update</button>
+        <select class="inline-edit" id="cat-${p.id}" style="width:100%">
+          <option value="Sterling Silver 925" ${p.category==='Sterling Silver 925'?'selected':''}>925 Silver</option>
+          <option value="Imitation Jewellery" ${p.category==='Imitation Jewellery'?'selected':''}>Imitation</option>
+        </select>
+      </td>
+      <td>
+        <select class="inline-edit" id="gender-${p.id}" style="width:100%">
+          <option value="Women" ${p.gender==='Women'?'selected':''}>Women</option>
+          <option value="Men" ${p.gender==='Men'?'selected':''}>Men</option>
+          <option value="Unisex" ${p.gender==='Unisex'?'selected':''}>Unisex</option>
+        </select>
+      </td>
+      <td>
+        <select class="inline-edit" id="subcat-${p.id}" style="width:100%">
+          <option value="">—</option>${subcatOpts}
+        </select>
+      </td>
+      <td><input class="inline-edit" type="number" value="${p.price}" id="price-${p.id}" style="width:80px" min="0" /></td>
+      <td><input class="inline-edit" type="number" value="${p.discount_price||''}" id="dprice-${p.id}" style="width:80px" min="0" placeholder="—" /></td>
+      <td><input class="inline-edit qty-edit" type="number" value="${p.qty}" id="qty-${p.id}" style="width:60px" min="0" /></td>
+      <td><span class="badge-stock ${p.qty>0?'badge-in':'badge-out'}" id="stock-badge-${p.id}">${p.qty>0?'In Stock':'Out'}</span></td>
+      <td style="min-width:90px">
+        <button class="btn-update" onclick="saveProductRow(${p.id})" id="save-btn-${p.id}">💾 Save</button>
         <button class="btn-delete" onclick="deleteProduct(${p.id},'${p.name.replace(/'/g,"\\'")}')">✕</button>
       </td>
-    </tr>`).join('');
-  wrap.innerHTML = `<div style="overflow-x:auto"><table class="admin-table">
-    <thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Gender</th><th>Price</th><th>Discount</th><th>Qty</th><th>Status</th><th>Actions</th></tr></thead>
-    <tbody>${rows}</tbody></table></div>`;
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div style="margin-bottom:10px;font-size:11px;color:var(--gold);letter-spacing:1px;">
+      ✏️ Directly edit any field → 💾 Save button click karo
+    </div>
+    <div style="overflow-x:auto"><table class="admin-table">
+      <thead><tr>
+        <th>Image</th><th>Name</th><th>Category</th><th>Gender</th>
+        <th>Item Type</th><th>Price</th><th>Discount</th><th>Qty</th>
+        <th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
 }
+
+async function saveProductRow(id) {
+  const btn = document.getElementById('save-btn-'+id);
+  btn.textContent = '...'; btn.disabled = true;
+  const updates = {
+    name:           document.getElementById('name-'+id).value.trim(),
+    category:       document.getElementById('cat-'+id).value,
+    gender:         document.getElementById('gender-'+id).value,
+    subcategory:    document.getElementById('subcat-'+id).value || null,
+    price:          parseFloat(document.getElementById('price-'+id).value),
+    discount_price: parseFloat(document.getElementById('dprice-'+id).value) || null,
+    qty:            parseInt(document.getElementById('qty-'+id).value),
+  };
+  if (!updates.name || isNaN(updates.price) || isNaN(updates.qty)) {
+    btn.textContent = '💾 Save'; btn.disabled = false;
+    return alert('Name, Price, Qty required');
+  }
+  try {
+    await dbWrite('update', updates, id);
+    btn.textContent = '✓ Saved'; btn.style.color = 'var(--green)';
+    const badge = document.getElementById('stock-badge-'+id);
+    if (badge) { badge.textContent = updates.qty>0?'In Stock':'Out'; badge.className='badge-stock '+(updates.qty>0?'badge-in':'badge-out'); }
+    setTimeout(() => { btn.textContent = '💾 Save'; btn.style.color=''; btn.disabled = false; }, 1800);
+    loadStats();
+  } catch(e) {
+    btn.textContent = '❌ Error'; btn.style.color='var(--red)';
+    setTimeout(() => { btn.textContent = '💾 Save'; btn.style.color=''; btn.disabled = false; }, 2000);
+    alert('Error: '+e.message);
+  }
+}
+
+async function replaceProductImage(id, input) {
+  const file = input.files[0]; if (!file) return;
+  const btn = document.getElementById('save-btn-'+id);
+  btn.textContent = '📷...'; btn.disabled = true;
+  const imageUrl = await uploadFile(file, 'images', null);
+  if (!imageUrl) { btn.textContent = '💾 Save'; btn.disabled = false; return; }
+  try {
+    await dbWrite('update', { image_url: imageUrl }, id);
+    const img = document.querySelector(`#row-${id} img`);
+    if (img) img.src = imageUrl;
+    btn.textContent = '✓ Done'; btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = '💾 Save'; btn.style.color=''; btn.disabled=false; }, 1800);
+  } catch(e) { btn.textContent = '💾 Save'; btn.disabled=false; alert('Error: '+e.message); }
+}
+
 async function updateQty(id) {
   const qty = parseInt(document.getElementById('qty-'+id).value);
   if (isNaN(qty)||qty<0) return alert('Invalid quantity');
-  try { await dbWrite('update',{qty},id); alert('Quantity updated!'); } catch(e) { return alert('Error: '+e.message); }
+  try { await dbWrite('update',{qty},id); } catch(e) { return alert('Error: '+e.message); }
   loadManageTable(); loadStats();
 }
 async function deleteProduct(id,name) {
@@ -871,6 +960,8 @@ function updateEditToolbar() {
   document.getElementById('edit-sel-count').textContent = n+' selected';
   document.getElementById('btn-open-bulk-edit').disabled = n===0;
   document.getElementById('btn-bulk-delete').disabled = n===0;
+  const bar = document.getElementById('edit-sticky-bar');
+  if (bar) bar.style.display = n > 0 ? 'flex' : 'none';
 }
 
 function openBulkEditModal() {
