@@ -4,8 +4,8 @@
   // ── Config ────────────────────────────────────────────────────────
   const VAPID_PUBLIC_KEY = 'BF1UCKQsbyW9V3QysGCO41U-AtPvyyKGMWSN3-Oc0GLzX4VlUguz7q89tapldmI7CYE6HCkBGEOOz5ctu-ouxSc';
   const WORKER_URL       = 'https://eliitoze-worker.bhkmanish.workers.dev';
-  const SW_SCOPE         = './'; 
-  const SW_PATH          = 'sw.js';
+  const SW_SCOPE = '/website/'; 
+const SW_PATH  = '/website/sw.js';
   const PROMPT_DELAY     = 3500;
 
   function urlBase64ToUint8Array(b64) {
