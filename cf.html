@@ -353,8 +353,8 @@ async function openEditor(name) {
 async function reloadCode() {
   if (!activeWorker) return;
   setEdSt('fetching…','pm-pill');
+  document.getElementById('edLogCard').style.display = 'block';
   try {
-    // Raw JS fetch — special header mokaliye
     const res = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {
@@ -367,25 +367,52 @@ async function reloadCode() {
         'Content-Type':   'application/json',
       },
     });
+
     const text = await res.text();
-    // JSON error check
-    try {
+
+    // Multipart response — JS code extract kariye
+    // CF module workers multipart/form-data ma return kare chhe
+    // boundary thi split kariye ane JS part find kariye
+    let code = text;
+    if (text.includes('--') && text.includes('Content-Disposition')) {
+      // Multipart — JS part extract kariye
+      const parts = text.split(/--[^\r\n]+/);
+      for (const part of parts) {
+        if (part.includes('application/javascript') || part.includes('name="worker.js"')) {
+          // Header skip kariye, body lo
+          const bodyStart = part.indexOf('\r\n\r\n');
+          if (bodyStart !== -1) {
+            code = part.slice(bodyStart + 4).trim();
+            break;
+          }
+        }
+      }
+      // Fallback — koi part ma export default hoy
+      if (code === text) {
+        for (const part of parts) {
+          const bodyStart = part.indexOf('\r\n\r\n');
+          if (bodyStart !== -1) {
+            const body = part.slice(bodyStart + 4).trim();
+            if (body.includes('export default') || body.includes('addEventListener')) {
+              code = body;
+              break;
+            }
+          }
+        }
+      }
+    } else if (text.startsWith('{')) {
+      // JSON error response
       const j = JSON.parse(text);
       if (j.error) throw new Error(j.error);
       if (j.errors?.length) throw new Error(j.errors[0].message);
-      // JSON aavyu — module worker multipart, first JS part extract kariye
-      document.getElementById('codeArea').value = JSON.stringify(j, null, 2);
-    } catch(je) {
-      if (je.message && !text.startsWith('{')) throw je;
-      // Plain JS code aavyu
-      document.getElementById('codeArea').value = text;
+      code = JSON.stringify(j, null, 2);
     }
+
+    document.getElementById('codeArea').value = code;
     setEdSt('✓ loaded','pg-pill');
-    document.getElementById('edLogCard').style.display = 'block';
-    edLog('ok', `Code loaded — ${(text.length/1024).toFixed(1)} KB`);
+    edLog('ok', `Code loaded — ${(code.length/1024).toFixed(1)} KB`);
   } catch(e) {
     setEdSt('error','err-pill');
-    document.getElementById('edLogCard').style.display = 'block';
     edLog('err', e.message);
     toast(e.message,'err');
   }
