@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub File Manager — Eliitoze</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a22;
+    --card: #1c2130;
+    --border: #2a3248;
+    --accent: #f0b429;
+    --accent2: #3d9eff;
+    --text: #e8eaf0;
+    --muted: #6b7a99;
+    --success: #29d98f;
+    --danger: #ff5f5f;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  header h1 {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  header p {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+
+  .card-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  label { font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 6px; }
+
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  input:focus { border-color: var(--accent); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #ffc94d; }
+  .btn-secondary { background: var(--accent2); color: #fff; }
+  .btn-secondary:hover { background: #60b3ff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-full { width: 100%; }
+
+  /* File Tree */
+  .file-tree { max-height: 55vh; overflow-y: auto; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .file-item:last-child { border-bottom: none; }
+  .file-item:hover { background: var(--surface); }
+  .file-item.selected { background: rgba(240,180,41,0.1); border-left: 3px solid var(--accent); }
+  .file-item input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+  }
+  .file-icon { font-size: 1rem; flex-shrink: 0; }
+  .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-size { font-size: 0.7rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+
+  .folder-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    color: var(--accent2);
+    font-weight: 700;
+    font-size: 0.82rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .folder-item:hover { background: var(--surface); }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 12px;
+  }
+  .breadcrumb span { cursor: pointer; color: var(--accent2); }
+  .breadcrumb span:hover { text-decoration: underline; }
+  .breadcrumb .sep { color: var(--border); }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .sel-count {
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: auto;
+  }
+
+  /* Upload */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 30px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent2);
+    background: rgba(61,158,255,0.05);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-zone p { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+  .upload-zone .icon { font-size: 2rem; }
+
+  .upload-list { max-height: 150px; overflow-y: auto; margin-bottom: 12px; }
+  .upload-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--surface);
+    margin-bottom: 4px;
+    font-size: 0.78rem;
+  }
+  .upload-item .rm { cursor: pointer; color: var(--danger); font-size: 1rem; line-height: 1; }
+
+  .upload-path-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .upload-path-row input { margin: 0; flex: 1; }
+
+  /* Log */
+  .log {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    max-height: 140px;
+    overflow-y: auto;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .log .ok { color: var(--success); }
+  .log .err { color: var(--danger); }
+  .log .info { color: var(--accent); }
+
+  /* Loading */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 18px; }
+  .tab {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .tab.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  #tabDownload, #tabUpload { display: none; }
+  #tabDownload.show, #tabUpload.show { display: block; }
+
+  .loading-overlay {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.8rem; color: var(--muted); padding: 20px 0;
+    justify-content: center;
+  }
+
+  .empty { text-align: center; padding: 24px; color: var(--muted); font-size: 0.82rem; }
+
+  .commit-msg input { margin: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ GitHub File Manager</h1>
+  <p>eliitoze/website · Download & Upload</p>
+</header>
+
+<!-- Config -->
+<div class="card" id="configCard">
+  <div class="card-title">Configuration <span id="savedBadge" style="display:none;margin-left:8px;font-size:0.68rem;background:var(--success);color:#000;padding:2px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace;letter-spacing:1px">✓ SAVED</span></div>
+  <label>GitHub Token</label>
+  <div style="position:relative">
+    <input type="password" id="ghToken" placeholder="ghp_..." style="padding-right:44px" />
+    <span onclick="toggleTokenVis()" style="position:absolute;right:12px;top:50%;transform:translateY(-60%);cursor:pointer;font-size:1rem" id="eyeIcon">👁️</span>
+  </div>
+  <label>Repository (owner/repo)</label>
+  <input type="text" id="ghRepo" value="eliitoze/website" />
+  <label>Branch</label>
+  <input type="text" id="ghBranch" value="main" />
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button class="btn btn-primary" style="flex:1" onclick="saveAndLoad()">
+      🔌 Save & Connect
+    </button>
+    <button class="btn btn-sm" style="background:var(--surface);color:var(--danger);border:1px solid var(--danger)" onclick="clearSaved()" title="Saved config delete karo">🗑</button>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs" id="mainTabs" style="display:none">
+  <div class="tab active" onclick="switchTab('download')">⬇ Download</div>
+  <div class="tab" onclick="switchTab('upload')">⬆ Upload</div>
+</div>
+
+<!-- Download Tab -->
+<div id="tabDownload">
+  <div class="card">
+    <div class="card-title">Browse & Select Files</div>
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <div class="toolbar">
+      <button class="btn btn-sm btn-secondary" onclick="selectAll()">Select All</button>
+      <button class="btn btn-sm" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="deselectAll()">Deselect All</button>
+      <span class="sel-count" id="selCount">0 selected</span>
+    </div>
+    <div class="file-tree" id="fileTree">
+      <div class="loading-overlay"><div class="spinner"></div> Loading…</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Download</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="downloadSelected()" id="btnDownload">
+        ⬇ Download Selected as ZIP
+      </button>
+      <button class="btn btn-secondary" onclick="downloadAll()">
+        📦 Download All (ZIP)
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Tab -->
+<div id="tabUpload">
+  <div class="card">
+    <div class="card-title">Upload Files to GitHub</div>
+
+    <div class="upload-path-row">
+      <label style="margin:0;white-space:nowrap">Upload to path:</label>
+      <input type="text" id="uploadPath" placeholder="e.g. media/products" style="margin:0" />
+    </div>
+
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" multiple onchange="handleFiles(this.files)" />
+      <div class="icon">📂</div>
+      <strong>Tap to choose files</strong>
+      <p>Any file type • Multiple files supported</p>
+    </div>
+
+    <div class="upload-list" id="uploadList"></div>
+
+    <div class="commit-msg" style="margin-bottom:12px">
+      <label>Commit message</label>
+      <input type="text" id="commitMsg" value="Upload via GitHub File Manager" />
+    </div>
+
+    <button class="btn btn-secondary btn-full" onclick="uploadFiles()" id="btnUpload" disabled>
+      ⬆ Upload to GitHub
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Upload ZIP → Unzip & Push</div>
+    <p style="font-size:0.8rem;color:var(--muted);margin-bottom:12px">Upload a .zip file and all its contents will be extracted and pushed to GitHub</p>
+
+    <div class="upload-path-row">
+      <label style="margin:0;white-space:nowrap">Extract to:</label>
+      <input type="text" id="zipExtractPath" placeholder="e.g. media" style="margin:0" />
+    </div>
+
+    <div class="upload-zone">
+      <input type="file" id="zipInput" accept=".zip" onchange="handleZip(this)" />
+      <div class="icon">🗜️</div>
+      <strong>Tap to choose ZIP file</strong>
+      <p>ZIP will be extracted and uploaded to GitHub</p>
+    </div>
+    <div id="zipInfo" style="font-size:0.78rem;color:var(--accent);margin-bottom:10px"></div>
+
+    <div class="commit-msg" style="margin-bottom:12px">
+      <label>Commit message</label>
+      <input type="text" id="zipCommitMsg" value="Upload extracted ZIP via GitHub File Manager" />
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="uploadZip()" id="btnZipUpload" disabled>
+      🗜️ Extract & Upload ZIP
+    </button>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="card" id="logCard" style="display:none">
+  <div class="card-title">Activity Log</div>
+  <div class="log" id="log"></div>
+</div>
+
+<!-- JSZip CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+let token = '', repo = '', branch = '';
+let currentPath = '';
+let allFiles = [];
+let currentItems = [];
+let selectedFiles = new Set();
+let uploadQueue = [];
+let zipFile = null;
+
+// ─── localStorage Save / Load ────────────────────────────────────
+const LS_KEY = 'gh_manager_config';
+
+function loadSavedConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    if (saved.token) document.getElementById('ghToken').value = saved.token;
+    if (saved.repo)  document.getElementById('ghRepo').value  = saved.repo;
+    if (saved.branch)document.getElementById('ghBranch').value= saved.branch;
+    if (saved.token) {
+      document.getElementById('savedBadge').style.display = 'inline';
+    }
+  } catch(e) {}
+}
+
+function saveConfig() {
+  const cfg = {
+    token:  document.getElementById('ghToken').value.trim(),
+    repo:   document.getElementById('ghRepo').value.trim(),
+    branch: document.getElementById('ghBranch').value.trim()
+  };
+  localStorage.setItem(LS_KEY, JSON.stringify(cfg));
+  document.getElementById('savedBadge').style.display = 'inline';
+}
+
+function clearSaved() {
+  if (!confirm('Saved config delete karvu chhe?')) return;
+  localStorage.removeItem(LS_KEY);
+  document.getElementById('ghToken').value = '';
+  document.getElementById('ghRepo').value = 'eliitoze/website';
+  document.getElementById('ghBranch').value = 'main';
+  document.getElementById('savedBadge').style.display = 'none';
+  document.getElementById('mainTabs').style.display = 'none';
+  log('info', 'Config cleared');
+}
+
+function toggleTokenVis() {
+  const inp = document.getElementById('ghToken');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+async function saveAndLoad() {
+  saveConfig();
+  await loadRepo();
+}
+
+// Auto-load on page open
+window.addEventListener('DOMContentLoaded', () => {
+  loadSavedConfig();
+  // Auto-connect if token already saved
+  const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+  if (saved.token && saved.repo) {
+    loadRepo();
+  }
+});
+
+// ─── Auth & Load ────────────────────────────────────────────────
+async function loadRepo() {
+  token = document.getElementById('ghToken').value.trim();
+  repo  = document.getElementById('ghRepo').value.trim();
+  branch= document.getElementById('ghBranch').value.trim();
+  if (!token || !repo) { alert('Token aur repo naam bharo!'); return; }
+
+  log('info', `Connecting to ${repo} (${branch})…`);
+  document.getElementById('fileTree').innerHTML = '<div class="loading-overlay"><div class="spinner"></div> Fetching file tree…</div>';
+  document.getElementById('mainTabs').style.display = 'none';
+  document.getElementById('logCard').style.display = 'block';
+
+  try {
+    const res = await ghFetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=1`);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const data = await res.json();
+    allFiles = data.tree.filter(f => f.type === 'blob');
+    log('ok', `✓ ${allFiles.length} files loaded`);
+    document.getElementById('mainTabs').style.display = 'flex';
+    switchTab('download');
+    renderDir('');
+  } catch(e) {
+    log('err', `Error: ${e.message}`);
+    document.getElementById('fileTree').innerHTML = `<div class="empty">❌ Load failed: ${e.message}</div>`;
+  }
+}
+
+function ghFetch(url, opts={}) {
+  return fetch(url, {
+    ...opts,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      ...(opts.headers||{})
+    }
+  });
+}
+
+// ─── File Tree ───────────────────────────────────────────────────
+function renderDir(path) {
+  currentPath = path;
+  renderBreadcrumb(path);
+
+  // Get immediate children
+  const dirs = new Set();
+  const files = [];
+
+  allFiles.forEach(f => {
+    const rel = path ? (f.path.startsWith(path+'/') ? f.path.slice(path.length+1) : null) : f.path;
+    if (!rel) return;
+    const parts = rel.split('/');
+    if (parts.length === 1) {
+      files.push(f);
+    } else {
+      dirs.add(parts[0]);
+    }
+  });
+
+  const tree = document.getElementById('fileTree');
+  tree.innerHTML = '';
+
+  if (!dirs.size && !files.length) {
+    tree.innerHTML = '<div class="empty">Empty folder</div>';
+    return;
+  }
+
+  // Folders first
+  [...dirs].sort().forEach(d => {
+    const div = document.createElement('div');
+    div.className = 'folder-item';
+    div.innerHTML = `<span>📁</span> <span>${d}</span>`;
+    div.onclick = () => renderDir(path ? `${path}/${d}` : d);
+    tree.appendChild(div);
+  });
+
+  // Files
+  files.sort((a,b)=>a.path.localeCompare(b.path)).forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'file-item' + (selectedFiles.has(f.path) ? ' selected' : '');
+    const sz = f.size ? formatSize(f.size) : '';
+    div.innerHTML = `
+      <input type="checkbox" ${selectedFiles.has(f.path)?'checked':''} data-path="${f.path}" onchange="toggleFile('${f.path}', this.checked); event.stopPropagation();" />
+      <span class="file-icon">${fileIcon(f.path)}</span>
+      <span class="file-name">${f.path.split('/').pop()}</span>
+      <span class="file-size">${sz}</span>
+    `;
+    div.onclick = (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      toggleFile(f.path, !selectedFiles.has(f.path));
+      renderDir(currentPath);
+    };
+    tree.appendChild(div);
+  });
+
+  updateSelCount();
+}
+
+function renderBreadcrumb(path) {
+  const bc = document.getElementById('breadcrumb');
+  bc.innerHTML = '';
+  const root = document.createElement('span');
+  root.textContent = repo;
+  root.onclick = () => renderDir('');
+  bc.appendChild(root);
+
+  if (path) {
+    const parts = path.split('/');
+    parts.forEach((p, i) => {
+      const sep = document.createElement('span');
+      sep.className = 'sep'; sep.textContent = ' / ';
+      bc.appendChild(sep);
+      const sp = document.createElement('span');
+      sp.textContent = p;
+      const fullPath = parts.slice(0,i+1).join('/');
+      sp.onclick = () => renderDir(fullPath);
+      bc.appendChild(sp);
+    });
+  }
+}
+
+function toggleFile(path, checked) {
+  if (checked) selectedFiles.add(path);
+  else selectedFiles.delete(path);
+  updateSelCount();
+  // Update checkbox & class
+  document.querySelectorAll(`[data-path="${CSS.escape(path)}"]`).forEach(cb => {
+    cb.checked = checked;
+    cb.closest('.file-item')?.classList.toggle('selected', checked);
+  });
+}
+
+function selectAll() {
+  // Select all files in current dir
+  document.querySelectorAll('#fileTree .file-item input[type=checkbox]').forEach(cb => {
+    selectedFiles.add(cb.dataset.path);
+    cb.checked = true;
+    cb.closest('.file-item').classList.add('selected');
+  });
+  updateSelCount();
+}
+
+function deselectAll() {
+  document.querySelectorAll('#fileTree .file-item input[type=checkbox]').forEach(cb => {
+    selectedFiles.delete(cb.dataset.path);
+    cb.checked = false;
+    cb.closest('.file-item').classList.remove('selected');
+  });
+  updateSelCount();
+}
+
+function updateSelCount() {
+  document.getElementById('selCount').textContent = `${selectedFiles.size} selected`;
+}
+
+// ─── Download ────────────────────────────────────────────────────
+async function downloadSelected() {
+  if (!selectedFiles.size) { alert('કોઈ file select નથી!'); return; }
+  await downloadFiles([...selectedFiles]);
+}
+
+async function downloadAll() {
+  log('info', 'Preparing all files for download…');
+  await downloadFiles(allFiles.map(f=>f.path));
+}
+
+async function downloadFiles(paths) {
+  const btn = document.getElementById('btnDownload');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Downloading…';
+  log('info', `Downloading ${paths.length} files…`);
+
+  const zip = new JSZip();
+  let done = 0;
+
+  for (const path of paths) {
+    try {
+      const res = await ghFetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`);
+      const data = await res.json();
+      const content = atob(data.content.replace(/\n/g,''));
+      const bytes = new Uint8Array(content.length);
+      for (let i=0;i<content.length;i++) bytes[i]=content.charCodeAt(i);
+      zip.file(path, bytes);
+      done++;
+      if (done % 5 === 0) log('ok', `↓ ${done}/${paths.length}`);
+    } catch(e) {
+      log('err', `Skip: ${path} (${e.message})`);
+    }
+  }
+
+  log('info', 'Generating ZIP…');
+  const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${repo.split('/')[1]}-${Date.now()}.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+  log('ok', `✓ ZIP downloaded! (${done} files)`);
+
+  btn.disabled = false;
+  btn.innerHTML = '⬇ Download Selected as ZIP';
+}
+
+// ─── Upload Files ────────────────────────────────────────────────
+function handleFiles(files) {
+  uploadQueue = [...files];
+  renderUploadList();
+  document.getElementById('btnUpload').disabled = uploadQueue.length === 0;
+}
+
+function renderUploadList() {
+  const ul = document.getElementById('uploadList');
+  ul.innerHTML = uploadQueue.map((f,i) => `
+    <div class="upload-item">
+      <span>${fileIcon(f.name)} ${f.name} <span style="color:var(--muted)">(${formatSize(f.size)})</span></span>
+      <span class="rm" onclick="removeUploadFile(${i})">✕</span>
+    </div>
+  `).join('');
+}
+
+function removeUploadFile(i) {
+  uploadQueue.splice(i,1);
+  renderUploadList();
+  document.getElementById('btnUpload').disabled = uploadQueue.length === 0;
+}
+
+async function uploadFiles() {
+  if (!uploadQueue.length) return;
+  const btn = document.getElementById('btnUpload');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Uploading…';
+
+  const basePath = document.getElementById('uploadPath').value.trim();
+  const msg = document.getElementById('commitMsg').value.trim() || 'Upload via GitHub File Manager';
+  let done = 0;
+
+  for (const file of uploadQueue) {
+    const filePath = basePath ? `${basePath}/${file.name}` : file.name;
+    await pushFile(filePath, file, msg);
+    done++;
+    log('ok', `↑ ${filePath}`);
+  }
+
+  log('ok', `✓ ${done} files uploaded!`);
+  btn.disabled = false;
+  btn.innerHTML = '⬆ Upload to GitHub';
+  // Refresh tree
+  await loadRepo();
+}
+
+async function pushFile(path, file, msg) {
+  const content = await fileToBase64(file);
+  // Check if file exists (for SHA)
+  let sha = undefined;
+  try {
+    const check = await ghFetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`);
+    if (check.ok) {
+      const ex = await check.json();
+      sha = ex.sha;
+    }
+  } catch(e) {}
+
+  const body = { message: msg, content, branch };
+  if (sha) body.sha = sha;
+
+  const res = await ghFetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const e = await res.json();
+    throw new Error(e.message || res.statusText);
+  }
+}
+
+// ─── Upload ZIP ──────────────────────────────────────────────────
+function handleZip(input) {
+  if (!input.files[0]) return;
+  zipFile = input.files[0];
+  document.getElementById('zipInfo').textContent = `📦 ${zipFile.name} (${formatSize(zipFile.size)}) ready`;
+  document.getElementById('btnZipUpload').disabled = false;
+}
+
+async function uploadZip() {
+  if (!zipFile) return;
+  const btn = document.getElementById('btnZipUpload');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Extracting & Uploading…';
+
+  const extractTo = document.getElementById('zipExtractPath').value.trim();
+  const msg = document.getElementById('zipCommitMsg').value.trim() || 'Upload extracted ZIP';
+
+  try {
+    const zip = await JSZip.loadAsync(zipFile);
+    const files = [];
+    zip.forEach((relPath, zipEntry) => {
+      if (!zipEntry.dir) files.push({ relPath, zipEntry });
+    });
+
+    log('info', `Found ${files.length} files in ZIP`);
+    let done = 0;
+
+    for (const { relPath, zipEntry } of files) {
+      const fullPath = extractTo ? `${extractTo}/${relPath}` : relPath;
+      const content = await zipEntry.async('base64');
+      const blob = b64ToBlob(content);
+      await pushFileRaw(fullPath, content, msg);
+      done++;
+      log('ok', `↑ ${fullPath}`);
+    }
+
+    log('ok', `✓ ZIP extracted & uploaded! (${done} files)`);
+    document.getElementById('zipInfo').textContent = `✅ ${done} files uploaded!`;
+    await loadRepo();
+  } catch(e) {
+    log('err', `ZIP upload error: ${e.message}`);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🗜️ Extract & Upload ZIP';
+}
+
+async function pushFileRaw(path, base64Content, msg) {
+  let sha = undefined;
+  try {
+    const check = await ghFetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`);
+    if (check.ok) { const ex = await check.json(); sha = ex.sha; }
+  } catch(e) {}
+
+  const body = { message: msg, content: base64Content, branch };
+  if (sha) body.sha = sha;
+
+  const res = await ghFetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const e = await res.json();
+    throw new Error(e.message);
+  }
+}
+
+// ─── Utils ───────────────────────────────────────────────────────
+function fileToBase64(file) {
+  return new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function b64ToBlob(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return new Blob([bytes]);
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024*1024) return `${(bytes/1024).toFixed(1)}KB`;
+  return `${(bytes/1024/1024).toFixed(1)}MB`;
+}
+
+function fileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = {
+    html:'🌐', css:'🎨', js:'⚡', json:'📋', md:'📝',
+    jpg:'🖼️', jpeg:'🖼️', png:'🖼️', gif:'🖼️', webp:'🖼️', svg:'🎭',
+    mp4:'🎬', webm:'🎬', mp3:'🎵', wav:'🎵',
+    pdf:'📄', zip:'📦', txt:'📄', ico:'🔖'
+  };
+  return map[ext] || '📄';
+}
+
+function log(type, msg) {
+  document.getElementById('logCard').style.display = 'block';
+  const logEl = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = type;
+  const time = new Date().toLocaleTimeString('en',{hour12:false});
+  line.textContent = `[${time}] ${msg}`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (tab==='download'?0:1)===i));
+  document.getElementById('tabDownload').className = tab==='download' ? 'show' : '';
+  document.getElementById('tabUpload').className = tab==='upload' ? 'show' : '';
+}
+
+// Drag & Drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+</script>
+</body>
+</html>
