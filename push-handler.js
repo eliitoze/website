@@ -1,192 +1,64 @@
-// ════════════════════════════════════════════════════════════════════
-//  push-handler.js  —  Eliitoze Jewelz
-//  Handles push notification permission, subscription creation,
-//  and saving to Supabase push_subscriptions table.
-//
-//  Include this file on every page, AFTER supabase.js:
-//    <script src="supabase.js"></script>
-//    <script src="push-handler.js"></script>
-// ════════════════════════════════════════════════════════════════════
-
 (function () {
   'use strict';
 
   // ── Config ────────────────────────────────────────────────────────
   const VAPID_PUBLIC_KEY = 'BF1UCKQsbyW9V3QysGCO41U-AtPvyyKGMWSN3-Oc0GLzX4VlUguz7q89tapldmI7CYE6HCkBGEOOz5ctu-ouxSc';
-  // SW path must match your GitHub Pages path (scope /website/)
-  const SW_SCOPE    = '/website/';
-  const SW_PATH     = '/website/sw.js';
-  // Delay before showing permission prompt on first open (ms)
-  const PROMPT_DELAY = 3500;
-  // localStorage key — prevents showing prompt more than once
-  const PROMPTED_KEY = 'eliitoze_push_prompted';
+  const WORKER_URL       = 'https://eliitoze-worker.bhkmanish.workers.dev';
+  const SW_SCOPE         = '/website/';
+  const SW_PATH          = '/website/sw.js';
+  const PROMPT_DELAY     = 3500;
 
-  // ── Utility: convert VAPID key ────────────────────────────────────
   function urlBase64ToUint8Array(b64) {
-    const pad    = '='.repeat((4 - b64.length % 4) % 4);
+    const pad = '='.repeat((4 - b64.length % 4) % 4);
     const base64 = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/');
-    const raw    = atob(base64);
+    const raw = atob(base64);
     return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
   }
 
-  // ── Check browser support ─────────────────────────────────────────
-  function isPushSupported() {
-    return (
-      'Notification'  in window &&
-      'serviceWorker' in navigator &&
-      'PushManager'   in window
-    );
-  }
+  async function initPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
-  // ── Register Service Worker ───────────────────────────────────────
-  async function registerSW() {
-    try {
-      const reg = await navigator.serviceWorker.register(SW_PATH, { scope: SW_SCOPE });
-      await navigator.serviceWorker.ready;
-      return reg;
-    } catch (err) {
-      // SW already registered under this scope — just get the existing one
-      try {
-        return await navigator.serviceWorker.ready;
-      } catch (e) {
-        throw new Error('[Push] SW registration failed: ' + err.message);
-      }
+    const reg = await navigator.serviceWorker.register(SW_PATH, { scope: SW_SCOPE });
+    let sub = await reg.pushManager.getSubscription();
+
+    if (!sub) {
+      setTimeout(async () => {
+        const res = await Notification.requestPermission();
+        if (res === 'granted') {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          });
+          saveSubscription(sub);
+        }
+      }, PROMPT_DELAY);
+    } else {
+      saveSubscription(sub);
     }
   }
 
-  // ── Save subscription via Cloudflare Worker (service_role — bypasses RLS) ──
-  async function saveToSupabase(subscription) {
-    try {
-      const subJson = subscription.toJSON();
+  async function saveSubscription(sub) {
+    const key = sub.getKey('p256dh');
+    const auth = sub.getKey('auth');
+    
+    const data = {
+      endpoint: sub.endpoint,
+      p256dh: btoa(String.fromCharCode(...new Uint8Array(key))),
+      auth: btoa(String.fromCharCode(...new Uint8Array(auth))),
+      user_agent: navigator.userAgent
+    };
 
-      if (!subJson.keys || !subJson.keys.p256dh || !subJson.keys.auth) {
-        console.warn('[Push] Subscription missing keys — cannot save.');
-        return false;
-      }
-
-      const workerUrl = window.WORKER_URL;
-      if (!workerUrl) {
-        console.warn('[Push] WORKER_URL not set — cannot save subscription.');
-        return false;
-      }
-
-      const resp = await fetch(workerUrl.replace(/\/$/, '') + '/db-write', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'upsert',
-          table: 'push_subscriptions',
-          data: {
-            endpoint:      subJson.endpoint,
-            p256dh:        subJson.keys.p256dh,
-            auth:          subJson.keys.auth,
-            user_agent:    navigator.userAgent.slice(0, 200),
-            subscribed_at: new Date().toISOString()
-          }
-        })
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        console.warn('[Push] Save failed:', err.error || resp.status);
-        return false;
-      }
-
-      console.log('[Push] Subscription saved via Worker ✓');
-      return true;
-    } catch (err) {
-      console.warn('[Push] saveToSupabase error:', err.message);
-      return false;
-    }
+    fetch(`${WORKER_URL}/db-write`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operation: 'upsert',
+        table: 'push_subscriptions',
+        data: data
+      })
+    }).then(r => r.json()).then(d => console.log('[Push] Saved:', d))
+      .catch(e => console.error('[Push] Save failed:', e));
   }
 
-  // ── Create a new push subscription (or reuse existing) ───────────
-  async function createOrReuseSubscription(reg) {
-    // Always clear old subscription to fix VAPID key mismatch
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) {
-      try { await existing.unsubscribe(); } catch(_) {}
-    }
-    // Fresh subscription with current VAPID key
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly:      true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-    });
-    console.log('[Push] New subscription created ✓');
-    await saveToSupabase(sub);
-    return sub;
-  }
-
-  // ── Full subscribe flow (register SW + subscribe + save) ─────────
-  async function subscribeDevice() {
-    if (!isPushSupported()) return null;
-    if (Notification.permission !== 'granted') return null;
-
-    try {
-      const reg = await registerSW();
-      return await createOrReuseSubscription(reg);
-    } catch (err) {
-      console.warn('[Push] subscribeDevice error:', err.message);
-      return null;
-    }
-  }
-
-  // ── Ask permission, then subscribe ───────────────────────────────
-  async function requestPermissionAndSubscribe() {
-    if (!isPushSupported()) return;
-
-    const perm = await Notification.requestPermission();
-    if (perm === 'granted') {
-      try { await subscribeDevice(); } catch(_) {}
-    }
-    return perm;
-  }
-
-  // ── Auto-prompt logic (called on page load) ───────────────────────
-  //   • Permission already granted → silently ensure subscription exists
-  //   • Permission default + never prompted → show prompt after delay
-  //   • Permission denied → do nothing
-  async function autoPushInit() {
-    if (!isPushSupported()) return;
-
-    const perm = Notification.permission;
-
-    if (perm === 'granted') {
-      // Already allowed — silently ensure subscription is fresh in DB
-      try { await subscribeDevice(); } catch(_) {}
-      return;
-    }
-
-    if (perm === 'denied') return;
-
-    // perm === 'default'
-    // Only prompt once per browser (localStorage flag)
-    if (localStorage.getItem(PROMPTED_KEY)) return;
-
-    // Pre-register SW quietly so it's ready when user accepts
-    try { await navigator.serviceWorker.register(SW_PATH, { scope: SW_SCOPE }); } catch (_) {}
-
-    // Wait a few seconds so the page feels loaded before showing system dialog
-    setTimeout(async () => {
-      localStorage.setItem(PROMPTED_KEY, '1');
-      await requestPermissionAndSubscribe();
-    }, PROMPT_DELAY);
-  }
-
-  // ── Run on DOMContentLoaded ───────────────────────────────────────
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', autoPushInit);
-  } else {
-    autoPushInit();
-  }
-
-  // ── Public API (used by admin panel buttons) ──────────────────────
-  window.PushHandler = {
-    // Call this when admin clicks "Enable Notifications on This Device"
-    subscribeDevice,
-    requestPermissionAndSubscribe,
-    saveToSupabase,
-    isPushSupported
-  };
-
+  initPush();
 })();
