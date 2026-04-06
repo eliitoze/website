@@ -283,17 +283,17 @@ async function cfProxy(cfPath, method = 'GET', body = null, isForm = false) {
     'X-CF-Account':   cfg.account,
     'X-CF-Path':      cfPath,
     'X-CF-Method':    method,
+    'Content-Type':   'application/json',
   };
   const opts = { method: 'POST', headers };
   if (body) {
     if (isForm) {
-      opts.body = body; // FormData
+      // FIX: Content-Type delete karo — browser auto-set kare multipart + boundary
+      opts.body = body;
+      delete headers['Content-Type'];
     } else {
-      headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
     }
-  } else {
-    headers['Content-Type'] = 'application/json';
   }
   const res = await fetch(PROXY_URL, opts);
   const text = await res.text();
