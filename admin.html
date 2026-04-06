@@ -1045,7 +1045,6 @@ async function bulkDeleteProducts() {
 }
 
 // ════════════════ PUSH NOTIFICATIONS ════════════════
-const EDGE_FN_URL = (window.WORKER_URL||'').replace(/\/$/,'') + '/send-push';
 
 async function initNotifPanel() {
   const dot=document.getElementById('notif-permission-dot');
@@ -1083,6 +1082,7 @@ async function subscribeThisDevice() {
 }
 
 async function sendPushNotification() {
+  const EDGE_FN_URL = (window.WORKER_URL||'').replace(/\/$/,'') + '/send-push';
   const title=document.getElementById('notif-title').value.trim();
   const body=document.getElementById('notif-body').value.trim();
   const statusEl=document.getElementById('notif-send-status');
