@@ -3,163 +3,167 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CF Worker Manager v2</title>
+<title>CF Worker Manager</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap');
 
 :root {
-  --bg:#090b10; --surface:#111520; --card:#161b28; --border:#222d45;
-  --cf:#f6821f; --cf2:#ffaa4d; --blue:#3d9eff; --green:#1fd97a;
-  --red:#ff4d4d; --yellow:#f5c518; --text:#d8e3f5; --muted:#4e607f; --r:12px;
+  --bg:#07090f;--surface:#0e1118;--card:#131720;--border:#1e2535;
+  --cf:#f6821f;--cf2:#ffaa4d;--green:#1fd97a;--red:#ff4d4d;
+  --blue:#3d9eff;--yellow:#f5c518;--text:#d8e3f5;--muted:#4e607f;--r:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;padding-bottom:64px}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;padding-bottom:68px}
 
 /* HEADER */
-.hdr{background:#0d1018;border-bottom:1px solid var(--border);padding:12px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200}
-.hdr-logo{width:32px;height:32px;background:var(--cf);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
-.hdr-info{flex:1;min-width:0}
-.hdr-title{font-size:.9rem;font-weight:700;color:var(--cf)}
-.hdr-sub{font-size:.63rem;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.acct-chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:.67rem;font-family:'JetBrains Mono',monospace;color:var(--cf);cursor:pointer;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
-.acct-chip:hover{border-color:var(--cf)}
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 16px;display:flex;align-items:center;gap:11px;position:sticky;top:0;z-index:200}
+.hdr-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--cf),var(--cf2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;box-shadow:0 4px 14px rgba(246,130,31,.3)}
+.hdr-title{font-size:.95rem;font-weight:800;color:var(--cf);letter-spacing:-.3px}
+.hdr-sub{font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:1px}
+.proxy-chip{background:rgba(31,217,122,.1);border:1px solid rgba(31,217,122,.3);border-radius:20px;padding:3px 10px;font-size:.62rem;font-family:'JetBrains Mono',monospace;color:var(--green);white-space:nowrap;margin-left:auto;flex-shrink:0}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;background:#0d1018;border-top:1px solid var(--border);display:flex;z-index:200}
-.nb{flex:1;padding:9px 0 7px;text-align:center;cursor:pointer;color:var(--muted);font-size:.58rem;font-weight:600;transition:color .15s}
-.nb .ni{font-size:1.1rem;display:block;margin-bottom:1px}
+.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.nb{flex:1;padding:9px 0 6px;text-align:center;cursor:pointer;color:var(--muted);font-size:.57rem;font-weight:700;letter-spacing:.3px;transition:color .15s}
+.nb .ni{font-size:1.05rem;display:block;margin-bottom:2px}
 .nb.on{color:var(--cf)}
 
 /* PAGES */
-.pg{display:none;padding:14px}
+.pg{display:none;padding:16px}
 .pg.on{display:block}
 
+/* SECTION HEADER */
+.shdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.stitle{font-size:.95rem;font-weight:800;letter-spacing:-.3px}
+
 /* CARDS */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
-.clabel{font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:12px}
+.clabel{font-size:.58rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:11px}
 
 /* INPUTS */
-label{font-size:.75rem;color:var(--muted);display:block;margin-bottom:5px;margin-top:10px}
+label{font-size:.73rem;color:var(--muted);display:block;margin-bottom:5px;margin-top:11px}
 label:first-child{margin-top:0}
-input[type=text],input[type=password],select,textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.75rem;padding:9px 12px;outline:none;transition:border-color .2s;-webkit-appearance:none}
-input:focus,select:focus,textarea:focus{border-color:var(--cf)}
-select option{background:var(--card)}
+input[type=text],input[type=password],textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.74rem;padding:10px 13px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+input:focus,textarea:focus{border-color:var(--cf)}
 .pw-wrap{position:relative}
-.pw-wrap input{padding-right:38px}
-.eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0}
+.pw-wrap input{padding-right:40px}
+.eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:4px}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.8rem;transition:all .18s;white-space:nowrap}
-.btn-cf{background:var(--cf);color:#000}.btn-cf:hover{background:var(--cf2)}
-.btn-blue{background:var(--blue);color:#fff}
-.btn-ghost{background:var(--surface);border:1px solid var(--border);color:var(--text)}.btn-ghost:hover{border-color:var(--cf)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:9px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:.8rem;transition:all .18s;white-space:nowrap}
+.btn-cf{background:linear-gradient(135deg,var(--cf),var(--cf2));color:#000;box-shadow:0 4px 14px rgba(246,130,31,.25)}
+.btn-cf:hover{box-shadow:0 4px 20px rgba(246,130,31,.4)}
+.btn-ghost{background:var(--surface);border:1px solid var(--border);color:var(--text)}
+.btn-ghost:hover{border-color:var(--cf);color:var(--cf)}
 .btn-red{background:transparent;border:1px solid var(--red);color:var(--red)}
+.btn-blue{background:var(--blue);color:#fff}
 .btn-full{width:100%}
-.btn-sm{padding:6px 11px;font-size:.71rem}
+.btn-sm{padding:6px 12px;font-size:.71rem}
 .btn:disabled{opacity:.35;cursor:not-allowed}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-
-/* ACCOUNT CARD */
-.acct-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .18s}
-.acct-card:hover,.acct-card.cur{border-color:var(--cf);background:#1d2235}
-.av{width:36px;height:36px;border-radius:8px;background:var(--cf);display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:1rem;flex-shrink:0}
-.acct-info{flex:1;min-width:0}
-.acct-name{font-size:.87rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.acct-id{font-size:.63rem;color:var(--muted);font-family:'JetBrains Mono',monospace}
-.dot{width:8px;height:8px;background:var(--green);border-radius:50%;flex-shrink:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
 
 /* WORKER CARD */
-.wcard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .18s}
-.wcard:hover{border-color:var(--cf);background:#1d2235}
+.wcard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:all .2s}
+.wcard:hover,.wcard:active{border-color:var(--cf);background:#191f2e}
+.wcard-name{font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wcard-meta{font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px}
 .wcard-info{flex:1;min-width:0}
-.wcard-name{font-size:.87rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wcard-meta{font-size:.63rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px}
 
-/* CODE AREA */
-.ed-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-.ed-name{font-size:.93rem;font-weight:700;color:var(--cf);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ed-tb{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
-#codeArea{width:100%;background:#080c12;border:1px solid var(--border);border-radius:9px;color:#c9d1d9;font-family:'JetBrains Mono',monospace;font-size:.7rem;line-height:1.75;padding:14px;resize:vertical;min-height:52vh;outline:none;tab-size:2;white-space:pre;overflow-x:auto}
+/* CODE */
+#codeArea{width:100%;background:#060911;border:1px solid var(--border);border-radius:10px;color:#c9d1d9;font-family:'JetBrains Mono',monospace;font-size:.69rem;line-height:1.8;padding:14px;resize:vertical;min-height:55vh;outline:none;tab-size:2;white-space:pre;overflow-x:auto}
 #codeArea:focus{border-color:var(--cf)}
+.ed-hdr{display:flex;align-items:center;gap:8px;margin-bottom:11px;flex-wrap:wrap}
+.ed-name{font-size:.95rem;font-weight:800;color:var(--cf);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* UPLOAD ZONE */
-.uzone{border:2px dashed var(--border);border-radius:10px;padding:24px 14px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:10px}
-.uzone:hover,.uzone.drag{border-color:var(--blue);background:rgba(61,158,255,.05)}
-.uzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.uzone .zi{font-size:1.8rem;margin-bottom:5px}
-.uzone p{font-size:.74rem;color:var(--muted);margin-top:3px}
+/* ENV TABLE */
+.env-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.env-key{flex:1;font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--cf2);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px}
+.env-val{flex:2;font-size:.72rem;font-family:'JetBrains Mono',monospace;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* LOG */
-.logbox{background:#060911;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:.66rem;max-height:180px;overflow-y:auto;line-height:1.8;color:var(--muted)}
+.logbox{background:#060911;border:1px solid var(--border);border-radius:9px;padding:11px 13px;font-family:'JetBrains Mono',monospace;font-size:.65rem;max-height:200px;overflow-y:auto;line-height:1.9;color:var(--muted)}
 .logbox .ok{color:var(--green)}.logbox .err{color:var(--red)}.logbox .info{color:var(--cf)}.logbox .warn{color:var(--yellow)}
 
 /* PILL */
-.pill{display:inline-flex;align-items:center;gap:4px;font-size:.6rem;font-family:'JetBrains Mono',monospace;border-radius:20px;padding:2px 8px;border:1px solid}
-.pg{border-color:var(--green);color:var(--green);background:rgba(31,217,122,.1)}
-.pc{border-color:var(--cf);color:var(--cf);background:rgba(246,130,31,.12)}
-.pm{border-color:var(--border);color:var(--muted);background:var(--surface)}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:.6rem;font-family:'JetBrains Mono',monospace;border-radius:20px;padding:3px 9px;border:1px solid}
+.pg-pill{border-color:var(--green);color:var(--green);background:rgba(31,217,122,.1)}
+.pc-pill{border-color:var(--cf);color:var(--cf);background:rgba(246,130,31,.1)}
+.pm-pill{border-color:var(--border);color:var(--muted);background:var(--surface)}
+.err-pill{border-color:var(--red);color:var(--red);background:rgba(255,77,77,.1)}
 
 /* TOAST */
-.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--card);border-radius:20px;padding:9px 20px;font-size:.77rem;font-weight:600;z-index:999;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.6);display:none}
-.toast.show{display:block;animation:tup .22s ease}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:var(--card);border-radius:22px;padding:9px 20px;font-size:.77rem;font-weight:700;z-index:999;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.6);display:none}
+.toast.show{display:block;animation:tup .2s ease}
 .toast.tok{border:1px solid var(--green);color:var(--green)}
 .toast.terr{border:1px solid var(--red);color:var(--red)}
-@keyframes tup{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes tup{from{opacity:0;transform:translateX(-50%) translateY(6px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
 /* SPINNER */
 .sp{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.15);border-top-color:currentColor;border-radius:50%;animation:rot .5s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 
-/* MISC */
-.empty{text-align:center;padding:34px 16px;color:var(--muted)}
-.empty .ei{font-size:2.2rem;margin-bottom:8px}
-.empty p{font-size:.79rem}
-.shdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:4px}
-.stitle{font-size:.87rem;font-weight:700}
+/* EMPTY */
+.empty{text-align:center;padding:36px 16px;color:var(--muted)}
+.empty .ei{font-size:2.2rem;margin-bottom:9px}
+.empty p{font-size:.79rem;line-height:1.6}
+
+/* SETUP BANNER */
+.setup-banner{background:rgba(246,130,31,.08);border:1px solid rgba(246,130,31,.25);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.setup-banner p{font-size:.75rem;line-height:1.7;color:var(--text)}
+.setup-banner b{color:var(--cf)}
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
 <div class="hdr">
-  <div class="hdr-logo">☁️</div>
-  <div class="hdr-info">
+  <div class="hdr-logo">⚡</div>
+  <div>
     <div class="hdr-title">CF Worker Manager</div>
-    <div class="hdr-sub" id="hdrSub">No account selected</div>
+    <div class="hdr-sub" id="hdrSub">Setup karo →</div>
   </div>
-  <div class="acct-chip" id="hdrChip" onclick="goPage('pgAccounts','nbAccounts')">+ Account</div>
+  <div class="proxy-chip" id="proxyStatus">● proxy</div>
 </div>
 
-<!-- PAGE: Accounts -->
-<div class="pg on" id="pgAccounts">
-  <div class="shdr">
-    <div class="stitle">Accounts</div>
-    <span class="pill pm" id="acctCount">0 saved</span>
+<!-- PAGE: Setup -->
+<div class="pg on" id="pgSetup">
+  <div class="shdr"><div class="stitle">Setup</div></div>
+
+  <div class="setup-banner">
+    <p>Aa tool <b>Eliitoze Worker</b> ne proxy tarke use kare chhe.<br>
+    Tame sirf <b>Cloudflare API Token</b> ane <b>Account ID</b> enter karo.<br>
+    ADMIN_SECRET already saved chhe.</p>
   </div>
-  <div id="acctList"></div>
+
   <div class="card">
-    <div class="clabel">➕ Add New Account</div>
-    <label>Nickname</label>
-    <input type="text" id="newNick" placeholder="e.g. Eliitoze" />
+    <div class="clabel">🔑 Credentials</div>
+    <label>Cloudflare API Token <small style="color:var(--muted);font-size:.63rem">(Workers:Edit permission)</small></label>
+    <div class="pw-wrap">
+      <input type="password" id="cfToken" placeholder="Cloudflare API Token" />
+      <button class="eye" onclick="tv('cfToken',this)">👁</button>
+    </div>
     <label>Account ID</label>
     <div class="pw-wrap">
-      <input type="password" id="newAcctId" placeholder="32-char Account ID" />
-      <button class="eye" onclick="tv('newAcctId',this)">👁</button>
+      <input type="password" id="cfAccount" placeholder="32-char Account ID" />
+      <button class="eye" onclick="tv('cfAccount',this)">👁</button>
     </div>
-    <label>API Token <small style="color:var(--muted);font-size:.65rem">(Workers:Edit permission)</small></label>
+    <label>Admin Secret</label>
     <div class="pw-wrap">
-      <input type="password" id="newToken" placeholder="Cloudflare API Token" />
-      <button class="eye" onclick="tv('newToken',this)">👁</button>
+      <input type="password" id="adminSecret" placeholder="Worker ADMIN_SECRET" />
+      <button class="eye" onclick="tv('adminSecret',this)">👁</button>
     </div>
     <div class="row">
-      <button class="btn btn-cf" style="flex:1" onclick="addAccount()">💾 Save Account</button>
+      <button class="btn btn-cf" style="flex:1" onclick="saveSetup()">💾 Save & Connect</button>
     </div>
   </div>
-  <div class="card" style="font-size:.73rem;color:var(--muted);line-height:2">
-    <div class="clabel">📖 Credentials ক્યાંથી</div>
-    <b style="color:var(--text)">Account ID:</b> dash.cloudflare.com → Right sidebar<br>
-    <b style="color:var(--text)">API Token:</b> Profile → API Tokens → Create Token<br>
-    → Template: <b style="color:var(--cf)">"Edit Cloudflare Workers"</b>
+
+  <div class="card" style="font-size:.72rem;color:var(--muted);line-height:2.1">
+    <div class="clabel">📖 Token kyaathi malse</div>
+    <b style="color:var(--text)">API Token:</b> dash.cloudflare.com<br>
+    → Profile → API Tokens → Create Token<br>
+    → Template: <b style="color:var(--cf)">"Edit Cloudflare Workers"</b><br><br>
+    <b style="color:var(--text)">Account ID:</b> dash.cloudflare.com URL ma<br>
+    → <span style="color:var(--cf2)">dash.cloudflare.com/<b>ACCOUNT_ID</b></span>
   </div>
 </div>
 
@@ -167,376 +171,379 @@ select option{background:var(--card)}
 <div class="pg" id="pgWorkers">
   <div class="shdr">
     <div class="stitle">Workers</div>
-    <div style="display:flex;gap:6px;align-items:center">
-      <span class="pill pc" id="wCount">—</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadWorkers()">↻ Refresh</button>
+    <div style="display:flex;gap:7px;align-items:center">
+      <span class="pill pc-pill" id="wCount">—</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadWorkers()">↻</button>
     </div>
   </div>
   <div id="workerList">
-    <div class="empty"><div class="ei">☁️</div><p>Account select karo ne Workers tab open karo</p></div>
+    <div class="empty"><div class="ei">☁️</div><p>Setup karo pehla</p></div>
   </div>
 </div>
 
 <!-- PAGE: Editor -->
 <div class="pg" id="pgEditor">
   <div class="ed-hdr">
-    <div class="ed-name" id="edName">No worker</div>
-    <span class="pill pm" id="edSt">—</span>
+    <div class="ed-name" id="edName">—</div>
+    <span class="pill pm-pill" id="edSt">—</span>
   </div>
-  <div class="ed-tb">
-    <button class="btn btn-cf" onclick="deployCode()" id="btnDeploy">🚀 Deploy</button>
-    <button class="btn btn-ghost btn-sm" onclick="reloadCode()">↻</button>
+  <div class="row" style="margin-top:0;margin-bottom:11px">
+    <button class="btn btn-cf btn-sm" onclick="deployCode()" id="btnDeploy">🚀 Deploy</button>
+    <button class="btn btn-ghost btn-sm" onclick="reloadCode()">↻ Reload</button>
     <button class="btn btn-ghost btn-sm" onclick="copyCode()">📋</button>
   </div>
-  <textarea id="codeArea" spellcheck="false" placeholder="// Worker tap karo to code load thashe…"></textarea>
-  <div style="margin-top:12px">
-    <div class="clabel" style="margin-bottom:7px">📄 .js File → Editor ma load karo</div>
-    <div class="uzone" id="edUzone">
-      <input type="file" accept=".js,.mjs,.txt" onchange="fileToEditor(this)" />
-      <div class="zi">📄</div>
-      <strong style="font-size:.82rem">Tap to pick .js file</strong>
-      <p>Content editor ma load thashe → Deploy karo</p>
-    </div>
-  </div>
-  <div class="card" id="edLogCard" style="display:none;margin-top:10px">
-    <div class="clabel">Deploy Log</div>
+  <textarea id="codeArea" spellcheck="false" placeholder="// Worker select karo…"></textarea>
+  <div class="card" id="edLogCard" style="display:none;margin-top:12px">
+    <div class="clabel">Log</div>
     <div class="logbox" id="edLog"></div>
   </div>
 </div>
 
-<!-- PAGE: Upload & Deploy -->
-<div class="pg" id="pgUpload">
-  <div class="shdr"><div class="stitle">Upload & Deploy</div></div>
-  <div class="card">
-    <div class="clabel">Target</div>
-    <label>Account</label>
-    <select id="upAcctSel"></select>
-    <label>Worker Name <small style="color:var(--muted)">(existing ya new)</small></label>
-    <input type="text" id="upName" placeholder="e.g. worker_neon" />
+<!-- PAGE: Env Vars -->
+<div class="pg" id="pgEnv">
+  <div class="shdr">
+    <div class="stitle">Env Variables</div>
+    <button class="btn btn-ghost btn-sm" id="btnLoadEnv" onclick="loadEnvVars()">↻ Load</button>
   </div>
-  <div class="card">
-    <div class="clabel">File Select</div>
-    <div class="uzone" id="upUzone">
-      <input type="file" accept=".js,.mjs,.txt" onchange="handleUp(this)" />
-      <div class="zi">📦</div>
-      <strong style="font-size:.82rem">Tap to choose .js file</strong>
-      <p>Select → Deploy directly to Cloudflare</p>
-    </div>
-    <div id="upInfo" style="font-size:.75rem;color:var(--cf);display:none;padding:4px 0"></div>
-  </div>
-  <button class="btn btn-cf btn-full" onclick="uploadDeploy()" id="btnUp" disabled>🚀 Upload & Deploy</button>
-  <div class="card" id="upLogCard" style="display:none;margin-top:10px">
-    <div class="clabel">Log</div>
-    <div class="logbox" id="upLog"></div>
+  <div id="envContent">
+    <div class="empty"><div class="ei">🔒</div><p>Worker select karo Workers tab thi</p></div>
   </div>
 </div>
 
-<!-- PAGE: Logs/Info -->
-<div class="pg" id="pgLogs">
+<!-- PAGE: Info -->
+<div class="pg" id="pgInfo">
   <div class="shdr"><div class="stitle">Worker Info</div></div>
-  <div class="card">
-    <label>Account</label>
-    <select id="logAcctSel" onchange="syncLogWorkers()"></select>
-    <label style="margin-top:10px">Worker</label>
-    <select id="logWorkerSel"></select>
-    <div class="row">
-      <button class="btn btn-blue" style="flex:1" onclick="fetchInfo()">🔍 Fetch Info</button>
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('logBox').innerHTML=''">🗑</button>
-    </div>
-  </div>
-  <div class="logbox" id="logBox" style="min-height:160px;max-height:55vh">
-    <span style="color:var(--muted)">// Info yahan aashe…</span>
+  <div id="infoContent">
+    <div class="empty"><div class="ei">📋</div><p>Workers tab thi worker open karo</p></div>
   </div>
 </div>
 
 <div class="bnav">
-  <div class="nb on" id="nbAccounts" onclick="goPage('pgAccounts','nbAccounts')"><span class="ni">👤</span>Accounts</div>
-  <div class="nb" id="nbWorkers"  onclick="goPage('pgWorkers','nbWorkers')"><span class="ni">☁️</span>Workers</div>
-  <div class="nb" id="nbEditor"   onclick="goPage('pgEditor','nbEditor')"><span class="ni">✏️</span>Editor</div>
-  <div class="nb" id="nbUpload"   onclick="goPage('pgUpload','nbUpload')"><span class="ni">⬆️</span>Upload</div>
-  <div class="nb" id="nbLogs"     onclick="goPage('pgLogs','nbLogs')"><span class="ni">📋</span>Info</div>
+  <div class="nb on" id="nbSetup"   onclick="goPage('pgSetup','nbSetup')"><span class="ni">⚙️</span>SETUP</div>
+  <div class="nb" id="nbWorkers"  onclick="goPage('pgWorkers','nbWorkers');loadWorkers()"><span class="ni">☁️</span>WORKERS</div>
+  <div class="nb" id="nbEditor"   onclick="goPage('pgEditor','nbEditor')"><span class="ni">✏️</span>EDITOR</div>
+  <div class="nb" id="nbEnv"      onclick="goPage('pgEnv','nbEnv')"><span class="ni">🔑</span>ENV</div>
+  <div class="nb" id="nbInfo"     onclick="goPage('pgInfo','nbInfo')"><span class="ni">📋</span>INFO</div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const LS='cfmgr_v2';
-let accounts=[], activeAcct=null, workers=[], activeWorker=null, upContent=null;
+const LS = 'eliitoze_cfmgr';
+const PROXY_URL = 'https://eliitoze-worker.bhkmanish.workers.dev/cf-proxy';
+
+let cfg = { token:'', account:'', secret:'' };
+let workers = [], activeWorker = null;
 
 // ── INIT
-window.addEventListener('DOMContentLoaded',()=>{
-  try{
-    const d=JSON.parse(localStorage.getItem(LS)||'{}');
-    accounts=d.accounts||[];
-    activeAcct=accounts.find(a=>a.id===d.activeId)||accounts[0]||null;
-  }catch(e){accounts=[];}
-  renderAccts(); syncSelects(); updateHdr();
-  if(activeAcct) loadWorkers();
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS) || '{}');
+    if (d.token)   { cfg.token   = d.token;   document.getElementById('cfToken').value   = d.token; }
+    if (d.account) { cfg.account = d.account; document.getElementById('cfAccount').value = d.account; }
+    if (d.secret)  { cfg.secret  = d.secret;  document.getElementById('adminSecret').value = d.secret; }
+    updateHdr();
+    if (cfg.token && cfg.account && cfg.secret) {
+      goPage('pgWorkers','nbWorkers');
+      loadWorkers();
+    }
+  } catch(e) {}
 });
 
-function save(){
-  localStorage.setItem(LS,JSON.stringify({accounts,activeId:activeAcct?.id}));
-}
-
-// ── ACCOUNTS
-function addAccount(){
-  const nick=document.getElementById('newNick').value.trim()||'Account';
-  const aid=document.getElementById('newAcctId').value.trim();
-  const tok=document.getElementById('newToken').value.trim();
-  if(!aid||!tok){toast('Account ID & Token bharo!','err');return;}
-  const a={id:Date.now().toString(36),nick,accountId:aid,token:tok};
-  accounts.push(a);
-  if(!activeAcct){activeAcct=a;}
-  save(); renderAccts(); syncSelects(); updateHdr();
-  document.getElementById('newNick').value='';
-  document.getElementById('newAcctId').value='';
-  document.getElementById('newToken').value='';
-  toast(`✓ "${nick}" saved!`,'ok');
-}
-
-function setActive(id){
-  activeAcct=accounts.find(a=>a.id===id)||null;
-  save(); renderAccts(); updateHdr();
-  loadWorkers();
+function saveSetup() {
+  const token   = document.getElementById('cfToken').value.trim();
+  const account = document.getElementById('cfAccount').value.trim();
+  const secret  = document.getElementById('adminSecret').value.trim();
+  if (!token || !account || !secret) { toast('Badhu j bharo!','err'); return; }
+  cfg = { token, account, secret };
+  localStorage.setItem(LS, JSON.stringify(cfg));
+  updateHdr();
+  toast('✓ Saved! Workers load thay chhe…','ok');
   goPage('pgWorkers','nbWorkers');
+  loadWorkers();
 }
 
-function delAcct(id){
-  const a=accounts.find(x=>x.id===id);
-  if(!confirm(`"${a?.nick}" delete karvu?`))return;
-  accounts=accounts.filter(x=>x.id!==id);
-  if(activeAcct?.id===id) activeAcct=accounts[0]||null;
-  save(); renderAccts(); syncSelects(); updateHdr();
-  toast('Account removed','ok');
-}
-
-function renderAccts(){
-  document.getElementById('acctCount').textContent=`${accounts.length} saved`;
-  const el=document.getElementById('acctList');
-  if(!accounts.length){
-    el.innerHTML=`<div class="empty"><div class="ei">👤</div><p>Koi account nathi</p></div>`;return;
+function updateHdr() {
+  const sub = document.getElementById('hdrSub');
+  const chip = document.getElementById('proxyStatus');
+  if (cfg.account) {
+    sub.textContent = cfg.account.slice(0,8) + '…' + cfg.account.slice(-4);
+    chip.style.color = 'var(--green)';
+  } else {
+    sub.textContent = 'Setup karo →';
+    chip.style.color = 'var(--muted)';
   }
-  el.innerHTML=accounts.map(a=>`
-    <div class="acct-card${activeAcct?.id===a.id?' cur':''}" onclick="setActive('${a.id}')">
-      <div class="av">${esc(a.nick[0]).toUpperCase()}</div>
-      <div class="acct-info">
-        <div class="acct-name">${esc(a.nick)}</div>
-        <div class="acct-id">${a.accountId.slice(0,8)}…${a.accountId.slice(-4)}</div>
-      </div>
-      ${activeAcct?.id===a.id?'<div class="dot"></div>':''}
-      <button style="color:var(--red);font-size:1rem;background:none;border:none;cursor:pointer;padding:4px;flex-shrink:0" onclick="event.stopPropagation();delAcct('${a.id}')">🗑</button>
-    </div>
-  `).join('');
 }
 
-function updateHdr(){
-  const chip=document.getElementById('hdrChip');
-  const sub=document.getElementById('hdrSub');
-  if(activeAcct){chip.textContent=activeAcct.nick;sub.textContent=activeAcct.accountId.slice(0,8)+'…'+activeAcct.accountId.slice(-4);}
-  else{chip.textContent='+ Account';sub.textContent='No account selected';}
+// ── PROXY CALL
+async function cfProxy(cfPath, method = 'GET', body = null, isForm = false) {
+  const headers = {
+    'X-Admin-Secret': cfg.secret,
+    'X-CF-Token':     cfg.token,
+    'X-CF-Account':   cfg.account,
+    'X-CF-Path':      cfPath,
+    'X-CF-Method':    method,
+  };
+  const opts = { method: 'POST', headers };
+  if (body) {
+    if (isForm) {
+      opts.body = body; // FormData
+    } else {
+      headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+  } else {
+    headers['Content-Type'] = 'application/json';
+  }
+  const res = await fetch(PROXY_URL, opts);
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch { return { error: text }; }
 }
 
 // ── WORKERS
-async function loadWorkers(){
-  if(!activeAcct){toast('Account select karo!','err');return;}
-  const el=document.getElementById('workerList');
-  el.innerHTML=`<div class="empty"><div class="sp" style="width:24px;height:24px;border-width:3px;color:var(--cf)"></div><p style="margin-top:10px">Loading…</p></div>`;
-  try{
-    const res=await cfGet(activeAcct,`/accounts/${activeAcct.accountId}/workers/scripts`);
-    const d=await res.json();
-    if(!d.success)throw new Error(d.errors?.[0]?.message||'API Error');
-    workers=d.result||[];
-    document.getElementById('wCount').textContent=`${workers.length} workers`;
-    syncLogWorkers();
-    if(!workers.length){el.innerHTML=`<div class="empty"><div class="ei">🤷</div><p>No workers found</p></div>`;return;}
-    el.innerHTML=workers.map(w=>`
-      <div class="wcard" onclick="openWorker('${esc(w.id)}')">
-        <div style="font-size:1.3rem;flex-shrink:0">⚡</div>
+async function loadWorkers() {
+  if (!cfg.token || !cfg.account || !cfg.secret) {
+    toast('Pehla Setup karo!','err');
+    goPage('pgSetup','nbSetup');
+    return;
+  }
+  const el = document.getElementById('workerList');
+  el.innerHTML = `<div class="empty"><div class="sp" style="width:24px;height:24px;border-width:3px;color:var(--cf)"></div><p style="margin-top:10px">Loading…</p></div>`;
+  try {
+    const d = await cfProxy(`/accounts/${cfg.account}/workers/scripts`);
+    if (d.error) throw new Error(d.error);
+    if (!d.success) throw new Error(d.errors?.[0]?.message || 'API Error');
+    workers = d.result || [];
+    document.getElementById('wCount').textContent = `${workers.length} workers`;
+    if (!workers.length) {
+      el.innerHTML = `<div class="empty"><div class="ei">🤷</div><p>Koi workers nathi</p></div>`;
+      return;
+    }
+    el.innerHTML = workers.map(w => `
+      <div class="wcard" onclick="selectWorker('${esc(w.id)}')">
+        <div style="font-size:1.4rem;flex-shrink:0">⚡</div>
         <div class="wcard-info">
           <div class="wcard-name">${esc(w.id)}</div>
-          <div class="wcard-meta">${w.modified_on?new Date(w.modified_on).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}</div>
+          <div class="wcard-meta">${w.modified_on ? new Date(w.modified_on).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
         </div>
         <div style="color:var(--muted);font-size:1.1rem">›</div>
       </div>
     `).join('');
-  }catch(e){
-    el.innerHTML=`<div class="empty"><div class="ei">❌</div><p>${esc(e.message)}</p></div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="ei">❌</div><p>${esc(e.message)}</p></div>`;
     toast(e.message,'err');
   }
 }
 
+function selectWorker(name) {
+  activeWorker = name;
+  openEditor(name);
+}
+
 // ── EDITOR
-async function openWorker(name){
-  if(!activeAcct){toast('Account select karo!','err');return;}
-  activeWorker=name;
-  document.getElementById('edName').textContent=name;
-  setEdSt('loading…','pm');
-  document.getElementById('codeArea').value='// Loading…';
+async function openEditor(name) {
+  document.getElementById('edName').textContent = name;
+  setEdSt('loading…','pm-pill');
+  document.getElementById('codeArea').value = '// Loading…';
   goPage('pgEditor','nbEditor');
   await reloadCode();
 }
 
-async function reloadCode(){
-  if(!activeWorker||!activeAcct)return;
-  setEdSt('fetching…','pm');
-  try{
-    const res=await cfGet(activeAcct,`/accounts/${activeAcct.accountId}/workers/scripts/${activeWorker}`,{'Accept':'application/javascript'});
-    if(!res.ok)throw new Error(`HTTP ${res.status}`);
-    const code=await res.text();
-    document.getElementById('codeArea').value=code;
-    setEdSt(`✓ ${(code.length/1024).toFixed(1)}KB`,'pg');
-    edLog('ok',`Code loaded — ${(code.length/1024).toFixed(1)} KB`);
-  }catch(e){setEdSt('error','terr-p');edLog('err',e.message);toast(e.message,'err');}
-}
-
-async function deployCode(){
-  if(!activeWorker||!activeAcct){toast('Worker select karo!','err');return;}
-  const code=document.getElementById('codeArea').value.trim();
-  if(!code){toast('Code empty!','err');return;}
-  const btn=document.getElementById('btnDeploy');
-  btn.innerHTML='<div class="sp"></div> Deploying…';btn.disabled=true;
-  document.getElementById('edLogCard').style.display='block';
-  edLog('info',`Deploying ${activeWorker}…`);
-  try{
-    await doDeploy(activeAcct,activeWorker,code);
-    edLog('ok',`✓ ${activeWorker} deployed!`);
-    setEdSt('deployed ✓','pg');
-    toast(`✅ ${activeWorker} live!`,'ok');
-    loadWorkers();
-  }catch(e){edLog('err',e.message);toast(e.message,'err');}
-  btn.innerHTML='🚀 Deploy';btn.disabled=false;
-}
-
-function fileToEditor(inp){
-  const f=inp.files[0];if(!f)return;
-  new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f);})
-  .then(txt=>{document.getElementById('codeArea').value=txt;toast(`${f.name} loaded!`,'ok');edLog('ok',`${f.name} — ${(f.size/1024).toFixed(1)} KB`);document.getElementById('edLogCard').style.display='block';});
-}
-
-function copyCode(){
-  navigator.clipboard.writeText(document.getElementById('codeArea').value).then(()=>toast('Copied!','ok'));
-}
-
-function setEdSt(txt,cls){
-  const el=document.getElementById('edSt');
-  el.textContent=txt;el.className=`pill ${cls}`;
-}
-
-// ── UPLOAD & DEPLOY
-function syncSelects(){
-  const opts=accounts.map(a=>`<option value="${a.id}">${esc(a.nick)} (${a.accountId.slice(0,6)}…)</option>`).join('');
-  document.getElementById('upAcctSel').innerHTML=opts||'<option>— No accounts —</option>';
-  document.getElementById('logAcctSel').innerHTML=opts||'<option>— No accounts —</option>';
-}
-
-function syncLogWorkers(){
-  const lw=document.getElementById('logWorkerSel');
-  lw.innerHTML=workers.map(w=>`<option value="${esc(w.id)}">${esc(w.id)}</option>`).join('')||'<option>— Load workers first —</option>';
-}
-
-function handleUp(inp){
-  const f=inp.files[0];if(!f)return;
-  new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f);})
-  .then(txt=>{
-    upContent=txt;
-    document.getElementById('upInfo').style.display='block';
-    document.getElementById('upInfo').textContent=`📄 ${f.name} — ${(f.size/1024).toFixed(1)} KB ready`;
-    document.getElementById('btnUp').disabled=false;
-  });
-}
-
-async function uploadDeploy(){
-  const aid=document.getElementById('upAcctSel').value;
-  const name=document.getElementById('upName').value.trim();
-  if(!aid){toast('Account select karo!','err');return;}
-  if(!name){toast('Worker name bharo!','err');return;}
-  if(!upContent){toast('File select karo!','err');return;}
-  const acct=accounts.find(a=>a.id===aid);
-  if(!acct){toast('Account not found','err');return;}
-  const btn=document.getElementById('btnUp');
-  btn.innerHTML='<div class="sp"></div> Deploying…';btn.disabled=true;
-  document.getElementById('upLogCard').style.display='block';
-  upLog('info',`Deploying ${name} → ${acct.nick}…`);
-  try{
-    await doDeploy(acct,name,upContent);
-    upLog('ok',`✓ ${name} deployed!`);
-    toast(`✅ ${name} live!`,'ok');
-    loadWorkers();
-  }catch(e){upLog('err',e.message);toast(e.message,'err');}
-  btn.innerHTML='🚀 Upload & Deploy';btn.disabled=false;
-}
-
-// ── INFO/LOGS
-async function fetchInfo(){
-  const aid=document.getElementById('logAcctSel').value;
-  const wname=document.getElementById('logWorkerSel').value;
-  if(!aid||!wname){toast('Account & Worker select karo!','err');return;}
-  const acct=accounts.find(a=>a.id===aid);if(!acct)return;
-  const box=document.getElementById('logBox');box.innerHTML='';
-  addL(box,'info',`Fetching info: ${wname}`);
-  try{
-    const sr=await cfGet(acct,`/accounts/${acct.accountId}/workers/scripts/${wname}/schedules`);
-    const sd=await sr.json();
-    if(sd.success){
-      const s=sd.result?.schedules||[];
-      s.length?s.forEach(x=>addL(box,'ok',`Cron: ${x.cron}`)):addL(box,'info','No cron — HTTP trigger worker');
+async function reloadCode() {
+  if (!activeWorker) return;
+  setEdSt('fetching…','pm-pill');
+  try {
+    const d = await cfProxy(`/accounts/${cfg.account}/workers/scripts/${activeWorker}`);
+    // Code response text aave — check karo
+    if (typeof d === 'string') {
+      document.getElementById('codeArea').value = d;
+      setEdSt(`✓ loaded`,'pg-pill');
+    } else if (d.error) {
+      throw new Error(d.error);
+    } else {
+      // Module worker — JSON response aave
+      document.getElementById('codeArea').value = JSON.stringify(d, null, 2);
+      setEdSt(`✓ loaded`,'pg-pill');
     }
-    const subr=await cfGet(acct,`/accounts/${acct.accountId}/workers/subdomain`);
-    const subd=await subr.json();
-    if(subd.success&&subd.result?.subdomain) addL(box,'ok',`URL: https://${wname}.${subd.result.subdomain}.workers.dev`);
-    const mr=await cfGet(acct,`/accounts/${acct.accountId}/workers/scripts/${wname}`,{'Accept':'application/json'});
-    addL(box, mr.ok?'ok':'warn', mr.ok?'Script accessible':'Script fetch failed');
+  } catch(e) {
+    setEdSt('error','err-pill');
+    edLog('err', e.message);
+    toast(e.message,'err');
+  }
+}
+
+async function deployCode() {
+  if (!activeWorker) { toast('Worker select karo!','err'); return; }
+  const code = document.getElementById('codeArea').value.trim();
+  if (!code) { toast('Code empty!','err'); return; }
+  const btn = document.getElementById('btnDeploy');
+  btn.innerHTML = '<div class="sp"></div> Deploying…';
+  btn.disabled = true;
+  document.getElementById('edLogCard').style.display = 'block';
+  edLog('info', `Deploying ${activeWorker}…`);
+
+  try {
+    // FormData banavo — worker.js module format
+    const form = new FormData();
+    form.append('metadata',
+      new Blob([JSON.stringify({ main_module:'worker.js', compatibility_date:'2024-01-01' })], { type:'application/json' }),
+      'metadata.json'
+    );
+    form.append('worker.js',
+      new Blob([code], { type:'application/javascript+module' }),
+      'worker.js'
+    );
+
+    const d = await cfProxy(
+      `/accounts/${cfg.account}/workers/scripts/${activeWorker}`,
+      'PUT',
+      form,
+      true
+    );
+
+    if (d.error) throw new Error(d.error);
+    if (!d.success) throw new Error(d.errors?.[0]?.message || 'Deploy failed');
+
+    edLog('ok', `✓ ${activeWorker} deployed!`);
+    setEdSt('deployed ✓','pg-pill');
+    toast(`✅ ${activeWorker} live!`,'ok');
+  } catch(e) {
+    edLog('err', e.message);
+    toast(e.message,'err');
+    setEdSt('error','err-pill');
+  }
+  btn.innerHTML = '🚀 Deploy';
+  btn.disabled = false;
+}
+
+// ── ENV VARS
+async function loadEnvVars() {
+  if (!activeWorker) { toast('Workers tab thi worker select karo!','err'); return; }
+  const el = document.getElementById('envContent');
+  el.innerHTML = `<div class="empty"><div class="sp" style="width:20px;height:20px;border-width:2px;color:var(--cf)"></div><p style="margin-top:8px">Loading…</p></div>`;
+  goPage('pgEnv','nbEnv');
+  try {
+    const d = await cfProxy(`/accounts/${cfg.account}/workers/scripts/${activeWorker}/bindings`);
+    if (d.error) throw new Error(d.error);
+    const bindings = d.result || [];
+    const secrets = await cfProxy(`/accounts/${cfg.account}/workers/scripts/${activeWorker}/secrets`);
+    const secretList = secrets.result || [];
+
+    if (!bindings.length && !secretList.length) {
+      el.innerHTML = `<div class="empty"><div class="ei">📭</div><p>Koi env vars/secrets nathi</p></div>`;
+      return;
+    }
+
+    let html = '';
+    if (secretList.length) {
+      html += `<div class="card"><div class="clabel">🔐 Secrets</div>`;
+      secretList.forEach(s => {
+        html += `<div class="env-row">
+          <div class="env-key">${esc(s.name)}</div>
+          <div class="env-val" style="color:var(--muted);font-style:italic">••••••••</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    if (bindings.length) {
+      html += `<div class="card"><div class="clabel">🔗 Bindings</div>`;
+      bindings.forEach(b => {
+        html += `<div class="env-row">
+          <div class="env-key">${esc(b.name)}</div>
+          <div class="env-val">${esc(b.type)}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="ei">❌</div><p>${esc(e.message)}</p></div>`;
+    toast(e.message,'err');
+  }
+}
+
+// ── INFO
+async function loadInfo() {
+  if (!activeWorker) { toast('Workers tab thi worker select karo!','err'); return; }
+  const el = document.getElementById('infoContent');
+  goPage('pgInfo','nbInfo');
+  el.innerHTML = `<div class="empty"><div class="sp" style="width:20px;height:20px;border-width:2px;color:var(--cf)"></div></div>`;
+
+  const box = document.createElement('div');
+  box.className = 'logbox';
+  box.style.minHeight = '200px';
+  box.style.maxHeight = '60vh';
+
+  try {
+    // Subdomain
+    const subr = await cfProxy(`/accounts/${cfg.account}/workers/subdomain`);
+    if (subr.success && subr.result?.subdomain) {
+      addL(box,'ok',`🔗 URL: https://${activeWorker}.${subr.result.subdomain}.workers.dev`);
+    }
+    // Schedules
+    const sr = await cfProxy(`/accounts/${cfg.account}/workers/scripts/${activeWorker}/schedules`);
+    if (sr.success) {
+      const s = sr.result?.schedules || [];
+      s.length ? s.forEach(x => addL(box,'ok',`⏰ Cron: ${x.cron}`)) : addL(box,'info','No cron — HTTP trigger worker');
+    }
+    // Script check
     addL(box,'ok','✓ Done');
-  }catch(e){addL(box,'err',e.message);}
-}
+  } catch(e) {
+    addL(box,'err', e.message);
+  }
 
-// ── CORE
-async function doDeploy(acct,name,code){
-  const form=new FormData();
-  form.append('metadata',new Blob([JSON.stringify({main_module:'worker.js',compatibility_date:'2024-01-01'})],{type:'application/json'}),'metadata.json');
-  form.append('worker.js',new Blob([code],{type:'application/javascript+module'}),'worker.js');
-  const res=await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct.accountId}/workers/scripts/${name}`,{method:'PUT',headers:{'Authorization':`Bearer ${acct.token}`},body:form});
-  const d=await res.json();
-  if(!d.success)throw new Error(d.errors?.[0]?.message||'Deploy failed');
-  return d;
-}
-
-function cfGet(acct,path,extraH={}){
-  return fetch(`https://api.cloudflare.com/client/v4${path}`,{headers:{'Authorization':`Bearer ${acct.token}`,'Content-Type':'application/json',...extraH}});
+  el.innerHTML = `<div class="card"><div class="clabel">Worker: ${esc(activeWorker)}</div></div>`;
+  el.appendChild(box);
 }
 
 // ── UTILS
-function tv(id,btn){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';btn.textContent=i.type==='password'?'👁':'🙈';}
-function goPage(pg,nb){
-  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
-  document.getElementById(pg).classList.add('on');
-  document.getElementById(nb).classList.add('on');
+function goPage(pgId, nbId) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
+  document.getElementById(pgId).classList.add('on');
+  document.getElementById(nbId).classList.add('on');
 }
-function toast(msg,type){
-  const t=document.getElementById('toast');t.textContent=msg;t.className=`toast show ${type==='ok'?'tok':'terr'}`;
-  setTimeout(()=>t.className='toast',2800);
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type==='ok'?'tok':'terr'}`;
+  setTimeout(() => t.className='toast', 2800);
 }
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function ts(){return new Date().toLocaleTimeString('en',{hour12:false});}
-function edLog(t,m){const b=document.getElementById('edLog');const d=document.createElement('div');d.className=t;d.textContent=`[${ts()}] ${m}`;b.appendChild(d);b.scrollTop=b.scrollHeight;}
-function upLog(t,m){const b=document.getElementById('upLog');const d=document.createElement('div');d.className=t;d.textContent=`[${ts()}] ${m}`;b.appendChild(d);b.scrollTop=b.scrollHeight;}
-function addL(box,t,m){const d=document.createElement('div');d.className=t;d.textContent=`[${ts()}] ${m}`;box.appendChild(d);box.scrollTop=box.scrollHeight;}
+function tv(id, btn) {
+  const i = document.getElementById(id);
+  i.type = i.type === 'password' ? 'text' : 'password';
+  btn.textContent = i.type === 'password' ? '👁' : '🙈';
+}
+function setEdSt(txt, cls) {
+  const el = document.getElementById('edSt');
+  el.textContent = txt;
+  el.className = `pill ${cls}`;
+}
+function copyCode() {
+  navigator.clipboard.writeText(document.getElementById('codeArea').value).then(() => toast('Copied!','ok'));
+}
+function edLog(t, m) {
+  const b = document.getElementById('edLog');
+  const d = document.createElement('div');
+  d.className = t;
+  d.textContent = `[${ts()}] ${m}`;
+  b.appendChild(d);
+  b.scrollTop = b.scrollHeight;
+}
+function addL(box, t, m) {
+  const d = document.createElement('div');
+  d.className = t;
+  d.textContent = `[${ts()}] ${m}`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+function ts() { return new Date().toLocaleTimeString('en',{hour12:false}); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// Drag-drop
-['edUzone','upUzone'].forEach(id=>{
-  const z=document.getElementById(id);
-  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag')});
-  z.addEventListener('dragleave',()=>z.classList.remove('drag'));
-  z.addEventListener('drop',e=>{
-    e.preventDefault();z.classList.remove('drag');
-    const f=e.dataTransfer.files[0];if(!f)return;
-    const r=new FileReader();
-    if(id==='edUzone'){r.onload=ev=>{document.getElementById('codeArea').value=ev.target.result;toast(`${f.name} loaded!`,'ok');};}
-    else{r.onload=ev=>{upContent=ev.target.result;document.getElementById('upInfo').style.display='block';document.getElementById('upInfo').textContent=`📄 ${f.name}`;document.getElementById('btnUp').disabled=false;toast(`${f.name} ready!`,'ok');};}
-    r.readAsText(f);
-  });
-});
+// Nav listeners
+document.getElementById('nbInfo').addEventListener('click', loadInfo);
+document.getElementById('nbEnv').addEventListener('click', loadEnvVars);
 </script>
 </body>
 </html>
