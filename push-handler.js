@@ -18,7 +18,6 @@ const PushHandler = {
             const el = document.getElementById('sub-count');
             if (el) el.innerText = count + ' subscribers';
             
-            // Checking permission લખાણ દૂર કરવા માટે
             const statusEl = document.getElementById('push-status-text');
             if (statusEl) statusEl.innerText = '';
         } catch (e) {
@@ -26,7 +25,6 @@ const PushHandler = {
         }
     },
     async sendNotification(title, message) {
-        // આ ફંક્શન admin.html ના SEND બટન માટે છે
         try {
             const r = await fetch(`${WORKER_URL}/send-push`, {
                 method: 'POST',
