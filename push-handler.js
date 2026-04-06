@@ -1,7 +1,4 @@
-(function () {
-  'use strict';
-
-  // ── Config ────────────────────────────────────────────────────────
+// ── Config ────────────────────────────────────────────────────────
   const VAPID_PUBLIC_KEY = 'BF1UCKQsbyW9V3QysGCO41U-AtPvyyKGMWSN3-Oc0GLzX4VlUguz7q89tapldmI7CYE6HCkBGEOOz5ctu-ouxSc';
   const WORKER_URL       = 'https://eliitoze-worker.bhkmanish.workers.dev';
   const SW_SCOPE = './'; 
@@ -56,4 +53,3 @@
   }
 
   initPush();
-})();
