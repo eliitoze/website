@@ -354,20 +354,38 @@ async function reloadCode() {
   if (!activeWorker) return;
   setEdSt('fetching…','pm-pill');
   try {
-    const d = await cfProxy(`/accounts/${cfg.account}/workers/scripts/${activeWorker}`);
-    // Code response text aave — check karo
-    if (typeof d === 'string') {
-      document.getElementById('codeArea').value = d;
-      setEdSt(`✓ loaded`,'pg-pill');
-    } else if (d.error) {
-      throw new Error(d.error);
-    } else {
-      // Module worker — JSON response aave
-      document.getElementById('codeArea').value = JSON.stringify(d, null, 2);
-      setEdSt(`✓ loaded`,'pg-pill');
+    // Raw JS fetch — special header mokaliye
+    const res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: {
+        'X-Admin-Secret': cfg.secret,
+        'X-CF-Token':     cfg.token,
+        'X-CF-Account':   cfg.account,
+        'X-CF-Path':      `/accounts/${cfg.account}/workers/scripts/${activeWorker}`,
+        'X-CF-Method':    'GET',
+        'X-CF-Accept':    'application/javascript',
+        'Content-Type':   'application/json',
+      },
+    });
+    const text = await res.text();
+    // JSON error check
+    try {
+      const j = JSON.parse(text);
+      if (j.error) throw new Error(j.error);
+      if (j.errors?.length) throw new Error(j.errors[0].message);
+      // JSON aavyu — module worker multipart, first JS part extract kariye
+      document.getElementById('codeArea').value = JSON.stringify(j, null, 2);
+    } catch(je) {
+      if (je.message && !text.startsWith('{')) throw je;
+      // Plain JS code aavyu
+      document.getElementById('codeArea').value = text;
     }
+    setEdSt('✓ loaded','pg-pill');
+    document.getElementById('edLogCard').style.display = 'block';
+    edLog('ok', `Code loaded — ${(text.length/1024).toFixed(1)} KB`);
   } catch(e) {
     setEdSt('error','err-pill');
+    document.getElementById('edLogCard').style.display = 'block';
     edLog('err', e.message);
     toast(e.message,'err');
   }
