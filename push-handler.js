@@ -194,3 +194,31 @@ async function initPush() {
 }
 
 initPush();
+// ─────────────────────────────────────
+// Auto ask notification permission
+// 3 second delay after site open
+// ─────────────────────────────────────
+setTimeout(async () => {
+
+  if (!("Notification" in window)) return;
+
+  if (Notification.permission === "default") {
+
+    const permission = await Notification.requestPermission();
+
+    if (permission === "granted") {
+
+      const reg = await navigator.serviceWorker.ready;
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)
+      });
+
+      console.log("Push subscription created:", sub);
+
+    }
+
+  }
+
+}, 3000);
