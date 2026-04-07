@@ -1,21 +1,15 @@
 // ════════════════════════════════════════════════════════
-//  Eliitoze Jewelz — Push Handler v2 (FIXED)
-//  Fixes:
-//    1. Added missing: isPushSupported(), subscribeDevice(),
-//                      requestPermissionAndSubscribe()
-//    2. fetchStats() — correct d.data parsing
-//    3. sendNotification() — X-Admin-Secret header added
-//    4. SW registration path fixed for GitHub Pages
-//    5. VAPID public key updated (new keys)
+//  Eliitoze Jewelz — Push Handler v3
+//  v3 Fix: Force re-subscribe on every page load
+//          (replaces old/mismatched VAPID subscriptions)
 // ════════════════════════════════════════════════════════
 
-// ── Config (supabase.js/index.html ma declare chhe, duplicate avoid karo) ──
 // VAPID public key — Worker ma pan same hovu joiye
 const PUSH_VAPID_PUBLIC_KEY = 'BANeYiwLxUIG6nmokr2rcW6FK_d_e3wQnl0N7U6X34N783L0Xhn7H-JhjvE6Pv0cvcBc3k5M4DCAgK_0mH7mQB8';
 
 // window.WORKER_URL & window.ADMIN_SECRET — supabase.js set kare chhe
-const _WORKER_URL    = () => (window.WORKER_URL    || 'https://eliitoze-worker.bhkmanish.workers.dev').replace(/\/$/, '');
-const _ADMIN_SECRET  = () => (window.ADMIN_SECRET  || 'Eliitoze@2025');
+const _WORKER_URL   = () => (window.WORKER_URL   || 'https://eliitoze-worker.bhkmanish.workers.dev').replace(/\/$/, '');
+const _ADMIN_SECRET = () => (window.ADMIN_SECRET || 'Eliitoze@2025');
 
 // ── Convert VAPID public key for pushManager.subscribe ──
 function urlBase64ToUint8Array(base64String) {
@@ -29,11 +23,9 @@ function urlBase64ToUint8Array(base64String) {
 // ── Get or register Service Worker ──────────────────────
 async function getServiceWorkerRegistration() {
   if (!('serviceWorker' in navigator)) throw new Error('Service Worker not supported');
-  // GitHub Pages path
   let reg = await navigator.serviceWorker.getRegistration('/website/');
   if (!reg) {
     reg = await navigator.serviceWorker.register('/website/sw.js', { scope: '/website/' });
-    // Wait for it to be active
     await new Promise((resolve, reject) => {
       if (reg.active) return resolve();
       const sw = reg.installing || reg.waiting;
@@ -54,11 +46,11 @@ async function saveSubscriptionToWorker(subscription) {
     operation: 'upsert',
     table: 'push_subscriptions',
     data: {
-      endpoint:       json.endpoint,
-      p256dh:         json.keys.p256dh,
-      auth:           json.keys.auth,
-      user_agent:     navigator.userAgent.substring(0, 200),
-      subscribed_at:  new Date().toISOString()
+      endpoint:      json.endpoint,
+      p256dh:        json.keys.p256dh,
+      auth:          json.keys.auth,
+      user_agent:    navigator.userAgent.substring(0, 200),
+      subscribed_at: new Date().toISOString()
     }
   };
   const r = await fetch(`${_WORKER_URL()}/db-write`, {
@@ -74,27 +66,23 @@ async function saveSubscriptionToWorker(subscription) {
 }
 
 // ════════════════════════════════════════════════════════
-//  PushHandler — Public API (used by admin.html & index.html)
+//  PushHandler — Public API
 // ════════════════════════════════════════════════════════
 const PushHandler = {
 
-  // Check if push is supported in this browser
   isPushSupported() {
     return ('serviceWorker' in navigator) &&
            ('PushManager' in window) &&
            ('Notification' in window);
   },
 
-  // Get current permission state: 'granted' | 'denied' | 'default'
   getPermissionState() {
     if (!('Notification' in window)) return 'denied';
     return Notification.permission;
   },
 
-  // Subscribe this device (assumes permission already granted)
   async subscribeDevice() {
     const reg = await getServiceWorkerRegistration();
-    // Check if already subscribed
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
       sub = await reg.pushManager.subscribe({
@@ -106,21 +94,17 @@ const PushHandler = {
     return sub;
   },
 
-  // Request permission, then subscribe — returns permission state string
   async requestPermissionAndSubscribe() {
     if (!PushHandler.isPushSupported()) throw new Error('Push not supported');
-
     let perm = Notification.permission;
     if (perm === 'default') {
       perm = await Notification.requestPermission();
     }
     if (perm !== 'granted') return perm;
-
     await PushHandler.subscribeDevice();
     return 'granted';
   },
 
-  // Fetch subscriber count from Neon and update UI
   async fetchStats() {
     try {
       const r = await fetch(`${_WORKER_URL()}/db-write`, {
@@ -132,14 +116,11 @@ const PushHandler = {
         body: JSON.stringify({ operation: 'select', table: 'push_subscriptions' })
       });
       const d = await r.json();
-      // Worker returns { data: [...] }
       const count = Array.isArray(d.data) ? d.data.length : 0;
-
       const el = document.getElementById('sub-count');
       if (el) el.innerText = count + ' subscribers';
       const el2 = document.getElementById('notif-sub-count');
       if (el2) el2.textContent = count + ' subscribers';
-
       const statusEl = document.getElementById('push-status-text');
       if (statusEl) statusEl.innerText = '';
     } catch (e) {
@@ -147,7 +128,6 @@ const PushHandler = {
     }
   },
 
-  // Send push notification — called from admin panel
   async sendNotification(title, body, url) {
     const payload = {
       title: title || 'Eliitoze Jewelz',
@@ -171,17 +151,42 @@ const PushHandler = {
   }
 };
 
-// ── Auto-init on page load (subscribe if already permitted) ─
+// ════════════════════════════════════════════════════════
+//  AUTO INIT — Smart re-subscribe (one-time per VAPID key)
+//  - localStorage ma current VAPID key store kare chhe
+//  - Jya sudhi key same chhe, re-subscribe nahi kare
+//  - Key change thay tyare j force re-subscribe thase
+// ════════════════════════════════════════════════════════
+const VAPID_LS_KEY = 'eliitoze_vapid_ver';
+
 async function initPush() {
   if (!PushHandler.isPushSupported()) return;
   try {
-    // Register SW silently
-    await getServiceWorkerRegistration();
-    // If user already granted before, re-save subscription silently
+    const reg = await getServiceWorkerRegistration();
+
     if (Notification.permission === 'granted') {
-      PushHandler.subscribeDevice().catch(() => {});
+      const savedKey = localStorage.getItem(VAPID_LS_KEY);
+
+      if (savedKey !== PUSH_VAPID_PUBLIC_KEY) {
+        // VAPID key badlai chhe (ya peheli vaar chhe) — force re-subscribe
+        const oldSub = await reg.pushManager.getSubscription();
+        if (oldSub) await oldSub.unsubscribe();
+
+        const newSub = await reg.pushManager.subscribe({
+          userVisibleOnly:      true,
+          applicationServerKey: urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)
+        });
+
+        await saveSubscriptionToWorker(newSub);
+        localStorage.setItem(VAPID_LS_KEY, PUSH_VAPID_PUBLIC_KEY);
+        console.log('[Push] Re-subscribed with new VAPID key ✓');
+      } else {
+        // Same key chhe — sirf DB ma refresh karo (endpoint valid rakho)
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) saveSubscriptionToWorker(sub).catch(() => {});
+      }
     }
-    // Update stats if on admin
+
     PushHandler.fetchStats().catch(() => {});
   } catch (e) {
     console.error('[Push] initPush error:', e);
