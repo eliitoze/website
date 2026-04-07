@@ -9,19 +9,13 @@
 //    5. VAPID public key updated (new keys)
 // ════════════════════════════════════════════════════════
 
-// ── NEW VAPID Public Key (update Worker env too!) ────────
-const VAPID_PUBLIC_KEY = 'BANeYiwLxUIG6nmokr2rcW6FK_d_e3wQnl0N7U6X34N783L0Xhn7H-JhjvE6Pv0cvcBc3k5M4DCAgK_0mH7mQB8';
+// ── Config (supabase.js/index.html ma declare chhe, duplicate avoid karo) ──
+// VAPID public key — Worker ma pan same hovu joiye
+const PUSH_VAPID_PUBLIC_KEY = 'BANeYiwLxUIG6nmokr2rcW6FK_d_e3wQnl0N7U6X34N783L0Xhn7H-JhjvE6Pv0cvcBc3k5M4DCAgK_0mH7mQB8';
 
-// ── Worker URL (fallback if window.WORKER_URL not set) ──
-const _WORKER_URL = () =>
-  (typeof window !== 'undefined' && window.WORKER_URL)
-    ? window.WORKER_URL.replace(/\/$/, '')
-    : 'https://eliitoze-worker.bhkmanish.workers.dev';
-
-const _ADMIN_SECRET = () =>
-  (typeof window !== 'undefined' && window.ADMIN_SECRET)
-    ? window.ADMIN_SECRET
-    : 'Eliitoze@2025';
+// window.WORKER_URL & window.ADMIN_SECRET — supabase.js set kare chhe
+const _WORKER_URL    = () => (window.WORKER_URL    || 'https://eliitoze-worker.bhkmanish.workers.dev').replace(/\/$/, '');
+const _ADMIN_SECRET  = () => (window.ADMIN_SECRET  || 'Eliitoze@2025');
 
 // ── Convert VAPID public key for pushManager.subscribe ──
 function urlBase64ToUint8Array(base64String) {
@@ -105,7 +99,7 @@ const PushHandler = {
     if (!sub) {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        applicationServerKey: urlBase64ToUint8Array(PUSH_VAPID_PUBLIC_KEY)
       });
     }
     await saveSubscriptionToWorker(sub);
