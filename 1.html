@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Push Debug — Eliitoze</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: monospace;
+    background: #0a0a0a;
+    color: #00ff88;
+    padding: 16px;
+    font-size: 13px;
+  }
+  h2 {
+    color: #ffd700;
+    font-size: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 8px;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: monospace;
+  }
+  .btn-blue  { background: #1a6fdf; color: #fff; }
+  .btn-green { background: #1a8a4a; color: #fff; }
+  .btn-red   { background: #c0392b; color: #fff; }
+  .btn-gold  { background: #b8860b; color: #fff; }
+  .log {
+    margin-top: 16px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 60vh;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .ok   { color: #00ff88; }
+  .err  { color: #ff4444; }
+  .warn { color: #ffaa00; }
+  .info { color: #44aaff; }
+  .sep  { color: #555; }
+</style>
+</head>
+<body>
+
+<h2>🔔 Push Debug Tool</h2>
+
+<button class="btn btn-blue" onclick="checkStatus()">1. Status Check</button>
+<button class="btn btn-green" onclick="subscribePush()">2. Subscribe Push</button>
+<button class="btn btn-gold" onclick="showSubscription()">3. Show Subscription</button>
+<button class="btn btn-red" onclick="sendTestPush()">4. Send Test Push</button>
+<button class="btn btn-red" onclick="clearLog()" style="background:#333;color:#aaa;margin-top:16px;">Clear Log</button>
+
+<div class="log" id="log">Tap a button to start...\n</div>
+
+<script>
+const WORKER = 'https://eliitoze-worker.bhkmanish.workers.dev';
+const ADMIN  = 'Eliitoze@2025';
+const VAPID_PUBLIC = 'BANeYiwLxUIG6nmokr2rcW6FK_d_e3wQnl0N7U6X34N783L0Xhn7H-JhjvE6Pv0cvcBc3k5M4DCAgK_0mH7mQB8';
+
+function log(msg, type='ok') {
+  const el = document.getElementById('log');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += `<span class="${type}">[${time}] ${msg}</span>\n`;
+  el.scrollTop = el.scrollHeight;
+}
+function sep() {
+  const el = document.getElementById('log');
+  el.innerHTML += `<span class="sep">─────────────────────────</span>\n`;
+}
+function clearLog() {
+  document.getElementById('log').innerHTML = '';
+}
+
+// ── 1. Status Check ──
+async function checkStatus() {
+  sep();
+  log('=== STATUS CHECK ===', 'info');
+
+  // Browser support
+  log('Notification API: ' + ('Notification' in window ? '✅' : '❌ NOT SUPPORTED'), 'Notification' in window ? 'ok' : 'err');
+  log('ServiceWorker API: ' + ('serviceWorker' in navigator ? '✅' : '❌ NOT SUPPORTED'), 'serviceWorker' in navigator ? 'ok' : 'err');
+  log('PushManager API: ' + ('PushManager' in window ? '✅' : '❌ NOT SUPPORTED'), 'PushManager' in window ? 'ok' : 'err');
+
+  // Permission
+  const perm = Notification.permission;
+  log('Permission: ' + perm, perm === 'granted' ? 'ok' : perm === 'denied' ? 'err' : 'warn');
+
+  // SW registration
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    log('SW Registrations: ' + regs.length, regs.length > 0 ? 'ok' : 'warn');
+    for (const r of regs) {
+      log('  SW Scope: ' + r.scope, 'info');
+      log('  SW State: ' + (r.active?.state || 'none'), 'info');
+    }
+  } catch(e) {
+    log('SW check error: ' + e.message, 'err');
+  }
+
+  // Existing subscription
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      log('Existing subscription: ✅ FOUND', 'ok');
+      log('Endpoint: ' + sub.endpoint.slice(0, 60) + '...', 'info');
+    } else {
+      log('Existing subscription: ❌ NONE', 'warn');
+    }
+  } catch(e) {
+    log('Subscription check error: ' + e.message, 'err');
+  }
+
+  // Worker reachability
+  try {
+    log('Testing worker...', 'info');
+    const r = await fetch(WORKER + '/db-write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'products', operation: 'select' })
+    });
+    log('Worker /db-write: HTTP ' + r.status, r.ok ? 'ok' : 'err');
+  } catch(e) {
+    log('Worker unreachable: ' + e.message, 'err');
+  }
+}
+
+// ── 2. Subscribe ──
+async function subscribePush() {
+  sep();
+  log('=== SUBSCRIBE PUSH ===', 'info');
+
+  if (!('Notification' in window)) { log('Notifications not supported!', 'err'); return; }
+  if (!('serviceWorker' in navigator)) { log('ServiceWorker not supported!', 'err'); return; }
+
+  // Request permission
+  log('Requesting permission...', 'info');
+  const perm = await Notification.requestPermission();
+  log('Permission result: ' + perm, perm === 'granted' ? 'ok' : 'err');
+  if (perm !== 'granted') { log('Permission denied — cannot subscribe', 'err'); return; }
+
+  // Get SW
+  log('Getting SW ready...', 'info');
+  let reg;
+  try {
+    reg = await navigator.serviceWorker.ready;
+    log('SW ready: ' + reg.scope, 'ok');
+  } catch(e) {
+    log('SW not ready: ' + e.message, 'err');
+    return;
+  }
+
+  // Subscribe
+  log('Subscribing to push...', 'info');
+  let sub;
+  try {
+    // Unsubscribe first to get fresh
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      await existing.unsubscribe();
+      log('Old subscription removed', 'warn');
+    }
+
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+    });
+    log('Subscribed! ✅', 'ok');
+    log('Endpoint: ' + sub.endpoint.slice(0, 80), 'info');
+  } catch(e) {
+    log('Subscribe failed: ' + e.message, 'err');
+    return;
+  }
+
+  // Save to DB
+  log('Saving to DB...', 'info');
+  const key = sub.getKey('p256dh');
+  const auth = sub.getKey('auth');
+  const p256dh = btoa(String.fromCharCode(...new Uint8Array(key))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const authStr = btoa(String.fromCharCode(...new Uint8Array(auth))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+
+  try {
+    const r = await fetch(WORKER + '/db-write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        table: 'push_subscriptions',
+        operation: 'upsert',
+        data: {
+          endpoint: sub.endpoint,
+          p256dh,
+          auth: authStr,
+          user_agent: navigator.userAgent,
+          subscribed_at: new Date().toISOString()
+        }
+      })
+    });
+    const json = await r.json();
+    log('DB save HTTP: ' + r.status, r.ok ? 'ok' : 'err');
+    log('DB response: ' + JSON.stringify(json), r.ok ? 'ok' : 'err');
+  } catch(e) {
+    log('DB save failed: ' + e.message, 'err');
+  }
+}
+
+// ── 3. Show Subscription ──
+async function showSubscription() {
+  sep();
+  log('=== CURRENT SUBSCRIPTION ===', 'info');
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) { log('No subscription found', 'warn'); return; }
+    log('Endpoint: ' + sub.endpoint, 'info');
+    const key = sub.getKey('p256dh');
+    const auth = sub.getKey('auth');
+    const p256dh = btoa(String.fromCharCode(...new Uint8Array(key))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+    const authStr = btoa(String.fromCharCode(...new Uint8Array(auth))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+    log('p256dh: ' + p256dh.slice(0,40) + '...', 'info');
+    log('auth: ' + authStr, 'info');
+  } catch(e) {
+    log('Error: ' + e.message, 'err');
+  }
+}
+
+// ── 4. Send Test Push ──
+async function sendTestPush() {
+  sep();
+  log('=== SEND TEST PUSH ===', 'info');
+  log('Calling /send-push...', 'info');
+  try {
+    const r = await fetch(WORKER + '/send-push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': ADMIN
+      },
+      body: JSON.stringify({
+        payload: {
+          title: '🔔 Test Push',
+          body: 'Mobile debug test — ' + new Date().toLocaleTimeString(),
+          icon: '/website/icons/icon-192.png'
+        }
+      })
+    });
+    const json = await r.json();
+    log('HTTP Status: ' + r.status, r.ok ? 'ok' : 'err');
+    log('Response: ' + JSON.stringify(json), 'info');
+    if (json.sent > 0) log('✅ Push sent to ' + json.sent + ' devices!', 'ok');
+    if (json.failed > 0) log('❌ Failed: ' + json.failed, 'err');
+    if (json.cleaned > 0) log('🗑️ Cleaned stale: ' + json.cleaned, 'warn');
+  } catch(e) {
+    log('Send failed: ' + e.message, 'err');
+  }
+}
+
+// VAPID key converter
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+</script>
+</body>
+</html>
