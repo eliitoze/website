@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Push Endpoint Check</title>
+<style>
+body{
+font-family: Arial;
+text-align:center;
+padding:40px;
+}
+button{
+padding:10px 20px;
+font-size:16px;
+}
+#result{
+margin-top:20px;
+word-break:break-all;
+color:green;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Push Subscription Endpoint</h2>
+
+<button onclick="getEndpoint()">Check Endpoint</button>
+
+<div id="result"></div>
+
+<script>
+
+async function getEndpoint(){
+
+if(!('serviceWorker' in navigator)){
+document.getElementById("result").innerText="Service Worker supported નથી";
+return;
+}
+
+const reg = await navigator.serviceWorker.ready;
+const sub = await reg.pushManager.getSubscription();
+
+if(sub){
+document.getElementById("result").innerText = sub.endpoint;
+}else{
+document.getElementById("result").innerText = "Subscription મળ્યું નથી";
+}
+
+}
+
+</script>
+
+</body>
+</html>
