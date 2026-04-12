@@ -668,35 +668,27 @@ function isFilterActive() {
   return catVal !== 'all' || genderVal !== 'all' || subcatVal !== 'all';
 }
 function resetAllFilters() {
-  // Reset category to All
   const allCatBtn = document.querySelector('.cat-tab[data-cat="all"]');
   if (allCatBtn) allCatBtn.click();
-  // Reset gender to All
   const allGenderBtn = document.querySelector('.gender-tab[data-gender="all"]');
   if (allGenderBtn) allGenderBtn.click();
-  // Reset subcat to All
   const allSubcatBtn = document.querySelector('.subcat-pill[data-sub="all"]');
   if (allSubcatBtn) allSubcatBtn.click();
 }
 
-// Push initial history state
+// 2 entries push કરો — એક handle માટે, એક buffer તરીકે
+history.pushState({ eliitoze: 'base' }, '', location.href);
 history.pushState({ eliitoze: 'home' }, '', location.href);
 
 window.addEventListener('popstate', () => {
   if (isModalOpen()) {
-    // Step 1: Modal બંધ કરો
     forceCloseModal();
   } else if (isSearchActive()) {
-    // Step 2: Search clear કરો
     clearSearch();
   } else if (isFilterActive()) {
-    // Step 3: Filters reset કરો
     resetAllFilters();
-  } else {
-    // Step 4: Home state — app minimize (normal back behavior)
-    return; // history go back — app/browser handle કરે
   }
-  // State handle થઈ — ફરી push કરો જેથી next back press ready રહે
+  // દર વખત ફરી push — stack ખાલી ન થાય
   history.pushState({ eliitoze: 'home' }, '', location.href);
 });
 </script>
