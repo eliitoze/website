@@ -638,6 +638,67 @@ document.getElementById('pwa-install-btn').addEventListener('click', async () =>
 });
 document.getElementById('pwa-dismiss-btn').addEventListener('click', () => installBar.style.display = 'none');
 window.addEventListener('appinstalled', () => { installBar.style.display = 'none'; deferredPrompt = null; });
+
+// ── Back Button Handling (PWA / Mobile) ─────────────────────────
+function isModalOpen() {
+  return document.getElementById('product-modal').classList.contains('open');
+}
+function forceCloseModal() {
+  document.getElementById('product-modal').classList.remove('open');
+  const vid = document.getElementById('modal-video');
+  if (vid) vid.pause();
+}
+function isSearchActive() {
+  const inp = document.getElementById('search-input');
+  return inp && inp.value.trim() !== '';
+}
+function clearSearch() {
+  const inp = document.getElementById('search-input');
+  const clr = document.getElementById('search-clear');
+  if (inp) inp.value = '';
+  if (clr) clr.click();
+}
+function isFilterActive() {
+  const activeCatBtn = document.querySelector('.cat-tab.active');
+  const activeGenderBtn = document.querySelector('.gender-tab.active');
+  const activeSubcatBtn = document.querySelector('.subcat-pill.active');
+  const catVal = activeCatBtn ? activeCatBtn.dataset.cat : 'all';
+  const genderVal = activeGenderBtn ? activeGenderBtn.dataset.gender : 'all';
+  const subcatVal = activeSubcatBtn ? activeSubcatBtn.dataset.sub : 'all';
+  return catVal !== 'all' || genderVal !== 'all' || subcatVal !== 'all';
+}
+function resetAllFilters() {
+  // Reset category to All
+  const allCatBtn = document.querySelector('.cat-tab[data-cat="all"]');
+  if (allCatBtn) allCatBtn.click();
+  // Reset gender to All
+  const allGenderBtn = document.querySelector('.gender-tab[data-gender="all"]');
+  if (allGenderBtn) allGenderBtn.click();
+  // Reset subcat to All
+  const allSubcatBtn = document.querySelector('.subcat-pill[data-sub="all"]');
+  if (allSubcatBtn) allSubcatBtn.click();
+}
+
+// Push initial history state
+history.pushState({ eliitoze: 'home' }, '', location.href);
+
+window.addEventListener('popstate', () => {
+  if (isModalOpen()) {
+    // Step 1: Modal બંધ કરો
+    forceCloseModal();
+  } else if (isSearchActive()) {
+    // Step 2: Search clear કરો
+    clearSearch();
+  } else if (isFilterActive()) {
+    // Step 3: Filters reset કરો
+    resetAllFilters();
+  } else {
+    // Step 4: Home state — app minimize (normal back behavior)
+    return; // history go back — app/browser handle કરે
+  }
+  // State handle થઈ — ફરી push કરો જેથી next back press ready રહે
+  history.pushState({ eliitoze: 'home' }, '', location.href);
+});
 </script>
 </body>
 </html>
