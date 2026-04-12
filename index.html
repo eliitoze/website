@@ -639,57 +639,95 @@ document.getElementById('pwa-install-btn').addEventListener('click', async () =>
 document.getElementById('pwa-dismiss-btn').addEventListener('click', () => installBar.style.display = 'none');
 window.addEventListener('appinstalled', () => { installBar.style.display = 'none'; deferredPrompt = null; });
 
-// ── Back Button Handling (PWA / Mobile — Hash based) ────────────
-function isModalOpen() {
-  return document.getElementById('product-modal').classList.contains('open');
+// ── Back Button Handling (PWA / Mobile) ─────────────────────────
+// Approach: Reactive pushState — state change thay tyare push karo
+// Back press = popstate fire = action karo
+
+const _base = location.href.split('#')[0];
+let _backLock = false; // double-fire avoid karva
+
+function _pushBack(state) {
+  history.pushState({ back: state }, '', _base);
 }
-function forceCloseModal() {
-  document.getElementById('product-modal').classList.remove('open');
+
+function _closeModalFull() {
+  const modal = document.getElementById('product-modal');
+  modal.classList.remove('open');
   const vid = document.getElementById('modal-video');
-  if (vid) vid.pause();
+  if (vid) { vid.pause(); vid.src = ''; }
 }
-function isSearchActive() {
-  const inp = document.getElementById('search-input');
-  return inp && inp.value.trim() !== '';
-}
-function clearSearch() {
+
+function _clearSearchFull() {
   const inp = document.getElementById('search-input');
   const clr = document.getElementById('search-clear');
   if (inp) inp.value = '';
-  if (clr) clr.click();
-}
-function isFilterActive() {
-  const activeCatBtn = document.querySelector('.cat-tab.active');
-  const activeGenderBtn = document.querySelector('.gender-tab.active');
-  const activeSubcatBtn = document.querySelector('.subcat-pill.active');
-  const catVal = activeCatBtn ? activeCatBtn.dataset.cat : 'all';
-  const genderVal = activeGenderBtn ? activeGenderBtn.dataset.gender : 'all';
-  const subcatVal = activeSubcatBtn ? activeSubcatBtn.dataset.sub : 'all';
-  return catVal !== 'all' || genderVal !== 'all' || subcatVal !== 'all';
-}
-function resetAllFilters() {
-  const allCatBtn = document.querySelector('.cat-tab[data-cat="all"]');
-  if (allCatBtn) allCatBtn.click();
-  const allGenderBtn = document.querySelector('.gender-tab[data-gender="all"]');
-  if (allGenderBtn) allGenderBtn.click();
-  const allSubcatBtn = document.querySelector('.subcat-pill[data-sub="all"]');
-  if (allSubcatBtn) allSubcatBtn.click();
+  if (clr) clr.dispatchEvent(new Event('click'));
 }
 
-// Hash set કરો — Android PWA back button આ detect કરે છે
-if (!location.hash) location.hash = 'home';
+function _resetFiltersFull() {
+  const allCat = document.querySelector('.cat-tab[data-cat="all"]');
+  if (allCat) allCat.dispatchEvent(new Event('click', { bubbles: true }));
+}
 
-window.addEventListener('hashchange', () => {
-  // Hash બદલ્યો = back press
-  if (isModalOpen()) {
-    forceCloseModal();
-  } else if (isSearchActive()) {
-    clearSearch();
-  } else if (isFilterActive()) {
-    resetAllFilters();
+// Popstate listener
+window.addEventListener('popstate', (e) => {
+  if (_backLock) return;
+  _backLock = true;
+  setTimeout(() => { _backLock = false; }, 300);
+
+  const state = e.state && e.state.back;
+
+  if (state === 'modal') {
+    _closeModalFull();
+    // filter/search active hoy to tenu state push karo
+    const catActive = document.querySelector('.cat-tab.active:not([data-cat="all"])');
+    const searchActive = document.getElementById('search-input')?.value.trim();
+    if (searchActive) _pushBack('search');
+    else if (catActive) _pushBack('filter');
+    // else home — no push, natural back
+  } else if (state === 'search') {
+    _clearSearchFull();
+    const catActive = document.querySelector('.cat-tab.active:not([data-cat="all"])');
+    if (catActive) _pushBack('filter');
+  } else if (state === 'filter') {
+    _resetFiltersFull();
   }
-  // Hash ફરી set કરો — stack ready રહે
-  setTimeout(() => { location.hash = 'home'; }, 50);
+  // state null/home = natural back = app minimize — correct!
+});
+
+// ── State push hooks — existing functions ni sathe integrate ─────
+
+// openModal hook
+const _origOpenModal = window.openModal || openModal;
+window.openModal = function(p, displayPrice) {
+  _origOpenModal(p, displayPrice);
+  _pushBack('modal');
+};
+
+// Modal close button (✕) — direct class remove kare chhe, te patch karo
+document.getElementById('product-modal').querySelector('.modal-close').onclick = function() {
+  history.back(); // pushState use karyo chhe to back j karo
+};
+
+// Modal overlay click patch
+document.getElementById('product-modal').onclick = function(e) {
+  if (e.target === this) history.back();
+};
+
+// Search input hook
+document.getElementById('search-input').addEventListener('input', function() {
+  if (this.value.trim() && history.state?.back !== 'search') {
+    _pushBack('search');
+  }
+});
+
+// Cat tab hook — filter select thay tyare push
+document.querySelectorAll('.cat-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.cat !== 'all') {
+      setTimeout(() => _pushBack('filter'), 10);
+    }
+  });
 });
 </script>
 </body>
