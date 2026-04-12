@@ -21,16 +21,23 @@ self.addEventListener('activate', e => {
   );
 });
 
-// ── Fetch: network-first for Supabase, cache-first for assets ────
+// ── Fetch: network-first for API calls, cache-first for static assets ────
 self.addEventListener('fetch', e => {
-  // Always go to network for Supabase — never cache auth/API calls
-  if (e.request.url.includes('supabase.co')) {
+  const url = e.request.url;
+
+  // Always network-first for API/Worker calls — never serve stale data
+  if (
+    url.includes('supabase.co') ||
+    url.includes('workers.dev') ||
+    url.includes('eliitoze-worker')
+  ) {
     e.respondWith(
       fetch(e.request).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } }))
     );
     return;
   }
-  // Cache-first for same-origin assets
+
+  // Cache-first for static assets (images, icons, fonts, etc.)
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       if (res && res.status === 200 && res.type === 'basic') {
