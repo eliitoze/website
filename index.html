@@ -639,7 +639,7 @@ document.getElementById('pwa-install-btn').addEventListener('click', async () =>
 document.getElementById('pwa-dismiss-btn').addEventListener('click', () => installBar.style.display = 'none');
 window.addEventListener('appinstalled', () => { installBar.style.display = 'none'; deferredPrompt = null; });
 
-// ── Back Button Handling (PWA / Mobile) ─────────────────────────
+// ── Back Button Handling (PWA / Mobile — Hash based) ────────────
 function isModalOpen() {
   return document.getElementById('product-modal').classList.contains('open');
 }
@@ -676,11 +676,11 @@ function resetAllFilters() {
   if (allSubcatBtn) allSubcatBtn.click();
 }
 
-// 2 entries push કરો — એક handle માટે, એક buffer તરીકે
-history.pushState({ eliitoze: 'base' }, '', location.href);
-history.pushState({ eliitoze: 'home' }, '', location.href);
+// Hash set કરો — Android PWA back button આ detect કરે છે
+if (!location.hash) location.hash = 'home';
 
-window.addEventListener('popstate', () => {
+window.addEventListener('hashchange', () => {
+  // Hash બદલ્યો = back press
   if (isModalOpen()) {
     forceCloseModal();
   } else if (isSearchActive()) {
@@ -688,8 +688,8 @@ window.addEventListener('popstate', () => {
   } else if (isFilterActive()) {
     resetAllFilters();
   }
-  // દર વખત ફરી push — stack ખાલી ન થાય
-  history.pushState({ eliitoze: 'home' }, '', location.href);
+  // Hash ફરી set કરો — stack ready રહે
+  setTimeout(() => { location.hash = 'home'; }, 50);
 });
 </script>
 </body>
