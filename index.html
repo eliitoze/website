@@ -149,7 +149,7 @@
 <!-- ── PRODUCT DETAIL MODAL ── -->
 <div class="modal-overlay" id="product-modal" onclick="closeModal(event)">
   <div class="modal-box">
-    <button class="modal-close" onclick="document.getElementById('product-modal').classList.remove('open')">✕</button>
+    <button class="modal-close" onclick="closeModalViaBack()">✕</button>
     <div class="modal-media">
       <img class="modal-img" id="modal-img" src="" alt="" />
       <video class="modal-video" id="modal-video" muted loop playsinline></video>
@@ -256,14 +256,36 @@ function openModal(p, displayPrice) {
   }
 
   document.getElementById('product-modal').classList.add('open');
+  history.pushState({ modal: true, productId: p.id }, '', window.location.href);
 }
 
-function closeModal(e) {
-  if (e.target === document.getElementById('product-modal')) {
-    document.getElementById('product-modal').classList.remove('open');
+// ── Modal close (internal - does NOT touch history)
+function _doCloseModal() {
+  const modal = document.getElementById('product-modal');
+  if (modal.classList.contains('open')) {
+    modal.classList.remove('open');
     document.getElementById('modal-video').pause();
   }
 }
+
+// ── Close via back button / close button (goes through history)
+function closeModalViaBack() {
+  if (document.getElementById('product-modal').classList.contains('open')) {
+    history.back(); // triggers popstate → _doCloseModal
+  }
+}
+
+// ── Overlay click to close
+function closeModal(e) {
+  if (e.target === document.getElementById('product-modal')) {
+    closeModalViaBack();
+  }
+}
+
+// ── Listen for browser/Android back
+window.addEventListener('popstate', function() {
+  _doCloseModal();
+});
 
 // ── Tab switch (exposed globally - declare first)
 window.switchProductTab = function(tab) {
