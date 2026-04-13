@@ -256,6 +256,7 @@ function openModal(p, displayPrice) {
   }
 
   document.getElementById('product-modal').classList.add('open');
+  history.pushState({ ez: 'modal' }, '', location.href.split('#')[0]);
 }
 
 function closeModal(e) {
@@ -675,13 +676,6 @@ window.addEventListener('popstate', (e) => {
   }
   // s === null = home state = app minimize — correct behaviour
 });
-
-// openModal intercept — push 'modal' state
-const _origOpen = openModal;
-openModal = function(p, dp) {
-  _origOpen(p, dp);
-  _pushState('modal');
-};
 
 // Search — first character type thay tyare push
 document.getElementById('search-input').addEventListener('input', function() {
