@@ -111,11 +111,11 @@
 <!-- ── PRODUCT TABS (New Arrivals / All) ── -->
 <div class="product-tabs-wrap" id="product-tabs-wrap" style="display:none">
   <div class="product-tabs">
-    <button class="product-tab" id="tab-new" onclick="switchProductTab('new')">
+    <button class="product-tab active" id="tab-new" onclick="switchProductTab('new')">
       ✨ New Arrivals
       <span class="tab-badge" id="new-badge">0</span>
     </button>
-    <button class="product-tab active" id="tab-all" onclick="switchProductTab('all')">
+    <button class="product-tab" id="tab-all" onclick="switchProductTab('all')">
       💎 All Products
     </button>
   </div>
@@ -147,9 +147,9 @@
 </footer>
 
 <!-- ── PRODUCT DETAIL MODAL ── -->
-<div class="modal-overlay" id="product-modal" onclick="if(event.target===this)history.back()">
+<div class="modal-overlay" id="product-modal" onclick="closeModal(event)">
   <div class="modal-box">
-    <button class="modal-close" onclick="history.back()">✕</button>
+    <button class="modal-close" onclick="document.getElementById('product-modal').classList.remove('open')">✕</button>
     <div class="modal-media">
       <img class="modal-img" id="modal-img" src="" alt="" />
       <video class="modal-video" id="modal-video" muted loop playsinline></video>
@@ -256,7 +256,6 @@ function openModal(p, displayPrice) {
   }
 
   document.getElementById('product-modal').classList.add('open');
-  history.pushState({ ez: 'modal' }, '', location.href.split('#')[0]);
 }
 
 function closeModal(e) {
@@ -291,7 +290,7 @@ window.switchProductTab = function(tab) {
   let activeCat     = 'all';
   let activeGender  = 'all';
   let activeSubcat  = 'all';
-  let activeTab     = 'all';
+  let activeTab     = 'new';
   let searchQuery   = '';
   let likesData     = {};
   let likedSet      = new Set(JSON.parse(localStorage.getItem('eliitoze_liked') || '[]'));
@@ -639,55 +638,6 @@ document.getElementById('pwa-install-btn').addEventListener('click', async () =>
 });
 document.getElementById('pwa-dismiss-btn').addEventListener('click', () => installBar.style.display = 'none');
 window.addEventListener('appinstalled', () => { installBar.style.display = 'none'; deferredPrompt = null; });
-
-// ── Back Button Handling (PWA / Mobile) ─────────────────────────
-
-const _BASE = location.href.split('#')[0];
-
-function _pushState(s) {
-  history.pushState({ ez: s }, '', _BASE);
-}
-
-function _doCloseModal() {
-  document.getElementById('product-modal').classList.remove('open');
-  const v = document.getElementById('modal-video');
-  if (v) { v.pause(); v.src = ''; }
-}
-
-function _doClearSearch() {
-  const inp = document.getElementById('search-input');
-  if (inp) { inp.value = ''; inp.dispatchEvent(new Event('input')); }
-}
-
-function _doResetFilter() {
-  const btn = document.querySelector('.cat-tab[data-cat="all"]');
-  if (btn) btn.click();
-}
-
-// popstate = back press
-window.addEventListener('popstate', (e) => {
-  const s = e.state && e.state.ez;
-  if (s === 'modal') {
-    _doCloseModal();
-  } else if (s === 'search') {
-    _doClearSearch();
-  } else if (s === 'filter') {
-    _doResetFilter();
-  }
-  // s === null = home state = app minimize — correct behaviour
-});
-
-// Search — first character type thay tyare push
-document.getElementById('search-input').addEventListener('input', function() {
-  if (this.value.length === 1) _pushState('search');
-});
-
-// Category filter — non-all select thay tyare push
-document.querySelectorAll('.cat-tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (btn.dataset.cat !== 'all') setTimeout(() => _pushState('filter'), 20);
-  });
-});
 </script>
 </body>
 </html>
