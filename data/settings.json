@@ -17,8 +17,8 @@
     177
   ],
   "notice_banner": {
-    "active": true,
-    "text": "50% discount on all imitation item only on sunday 5-4-2026",
-    "color": "#1a1a2e"
+    "active": false,
+    "text": "10% extra discount on all imitation jewellery",
+    "color": "#B8860B"
   }
 }
