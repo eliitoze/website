@@ -188,9 +188,10 @@
 // ── Load Notice Banner
 (async () => {
   try {
-    const res = await fetch('https://raw.githubusercontent.com/eliitoze/website/main/data/settings.json?v=' + Date.now());
-    if (!res.ok) return;
-    const s = (await res.json()).notice_banner;
+    const workerBase = (window.WORKER_URL || 'https://eliitoze-worker.bhkmanish.workers.dev').replace(/\/$/, '');
+const res = await fetch(workerBase + '/notice');
+if (!res.ok) return;
+const s = await res.json();
     if (s && s.active && s.text) {
       const banner = document.getElementById('notice-banner');
       banner.style.background = s.color || '#B8860B';
@@ -661,5 +662,6 @@ document.getElementById('pwa-install-btn').addEventListener('click', async () =>
 document.getElementById('pwa-dismiss-btn').addEventListener('click', () => installBar.style.display = 'none');
 window.addEventListener('appinstalled', () => { installBar.style.display = 'none'; deferredPrompt = null; });
 </script>
+<script src="chat-widget.js"></script>
 </body>
 </html>
