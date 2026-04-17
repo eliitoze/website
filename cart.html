@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cart — ELIITOZE JEWELZ</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -90,7 +89,7 @@ function render() {
       </div>
       <div class="summary-row">
         <span>Shipping</span>
-        <span class="val">${shippingFree ? 'FREE' : 'Calculated at checkout'}</span>
+        <span class="val">${shippingFree ? 'FREE 🎉' : 'Calculated at checkout'}</span>
       </div>
       ${shippingMsg}
       <div class="summary-row total">
@@ -130,16 +129,39 @@ function render() {
     });
   });
 
-  // WhatsApp
+  // WhatsApp — improved message format
   document.getElementById('wa-btn').addEventListener('click', () => {
-    const baseUrl = window.location.origin + window.location.pathname.replace('cart.html', '');
-    const lines = getCart().map((item, idx) =>
-      `${idx + 1}. ${item.name} – ${formatPrice(item.display_price)}\n   🔗 ${baseUrl}index.html?product=${item.id}`
-    ).join('\n');
-    const msg = encodeURIComponent(
-      `Hello Eliitoze Jewelz,\nI want to order these items:\n\n${lines}\n\nTotal: ${formatPrice(total)}`
-    );
-    window.open(`https://wa.me/${window.WA_NUMBER}?text=${msg}`, '_blank');
+    const baseUrl = 'https://eliitoze.github.io/website/';
+    const cartItems = getCart();
+    const grandTotal = cartTotal();
+    const totalQty = cartItems.reduce((s, i) => s + i.qty, 0);
+    const freeShip = grandTotal >= FREE_SHIPPING_MIN;
+
+    // Build item lines
+    const itemLines = cartItems.map((item, idx) => {
+      const lineTotal = item.display_price * item.qty;
+      return `${idx + 1}. *${item.name}*\n` +
+             `   Qty: ${item.qty} × ${formatPrice(item.display_price)} = ${formatPrice(lineTotal)}\n` +
+             `   🔗 ${baseUrl}?product=${item.id}`;
+    }).join('\n\n');
+
+    const sep = '─────────────────';
+    const msg =
+`🛍️ *Eliitoze Jewelz — Order Request*
+
+${sep}
+${itemLines}
+${sep}
+
+📦 *Total Items:* ${totalQty}
+💰 *Subtotal:* ${formatPrice(grandTotal)}
+🚚 *Shipping:* ${freeShip ? 'FREE 🎉' : 'Will confirm'}
+━━━━━━━━━━━━━━━━━
+💎 *Grand Total: ${formatPrice(grandTotal)}*
+
+Please confirm my order. Thank you! 🙏`;
+
+    window.open(`https://wa.me/${window.WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
   });
 }
 
