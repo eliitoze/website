@@ -3,9 +3,9 @@
 //  Handles: caching, push notifications, notification clicks
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE     = 'eliitoze-v4';
-// Use absolute paths for GitHub Pages /website/ subfolder
-const ICON_PATH = '/website/icon-192.png';
+const CACHE     = 'eliitoze-v5';
+// Updated: custom domain serves from root "/", not "/website/"
+const ICON_PATH = '/icon-192.png';
 
 // ── Install: skip waiting so new SW activates immediately ────────
 self.addEventListener('install', e => {
@@ -53,11 +53,11 @@ self.addEventListener('fetch', e => {
 //  PUSH NOTIFICATION HANDLER
 // ════════════════════════════════════════
 self.addEventListener('push', e => {
-  // Default fallback data
+  // Default fallback data — updated to custom domain
   let data = {
     title: 'Eliitoze Jewelz',
     body:  'New update available!',
-    url:   'https://eliitoze.github.io/website/'
+    url:   'https://eliitoze.in/'
   };
 
   if (e.data) {
@@ -82,13 +82,13 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = (e.notification.data && e.notification.data.url)
     ? e.notification.data.url
-    : 'https://eliitoze.github.io/website/';
+    : 'https://eliitoze.in/';
 
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       // If site is already open, focus it
       for (const client of clientList) {
-        if (client.url.includes('eliitoze.github.io') && 'focus' in client) {
+        if (client.url.includes('eliitoze.in') && 'focus' in client) {
           return client.focus();
         }
       }
