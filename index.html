@@ -6,8 +6,341 @@
   <title>ELIITOZE JEWELZ — Fine Jewellery</title>
   <meta name="description" content="Discover premium handcrafted jewellery by Eliitoze Jewelz, Rajkot." />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ═══════════════════════════════════════════════
+       ELIITOZE JEWELZ — Light × Dark × Gold Theme
+       Professional, premium, not overly dark
+    ═══════════════════════════════════════════════ */
+    :root {
+      /* Core palette */
+      --bg:           #F7F3ED;
+      --bg-soft:      #EEE8DE;
+      --bg-card:      #FFFFFF;
+      --bg-card-hover:#FBF8F2;
+      --surface:      #F0EAE0;
+      --surface2:     #E8E0D0;
+
+      /* Gold scale */
+      --gold:         #B8860B;
+      --gold-bright:  #D4A017;
+      --gold-light:   #E8C84A;
+      --gold-pale:    #F5E8B8;
+      --gold-dim:     #8B6508;
+
+      /* Dark accents (not full black) */
+      --dark:         #1C1508;
+      --dark2:        #2E2010;
+      --text:         #1C1508;
+      --text-mid:     #4A3820;
+      --text-dim:     #7A6040;
+      --text-muted:   #A08060;
+      --border:       rgba(184,134,11,0.25);
+      --border-strong:rgba(184,134,11,0.5);
+
+      /* Shadows */
+      --shadow-sm:    0 2px 8px rgba(184,134,11,0.10);
+      --shadow-md:    0 4px 20px rgba(184,134,11,0.15);
+      --shadow-lg:    0 8px 40px rgba(184,134,11,0.20);
+    }
+
+    /* ── Body & base ── */
+    body {
+      background: var(--bg) !important;
+      color: var(--text) !important;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      background: #FFFFFF !important;
+      border-bottom: 1px solid var(--border-strong) !important;
+      box-shadow: 0 2px 16px rgba(184,134,11,0.12) !important;
+    }
+    .logo { color: var(--dark) !important; }
+    .logo span { color: var(--gold) !important; }
+    .header-nav a { color: var(--text-mid) !important; }
+    .header-nav a:hover { color: var(--gold) !important; }
+    .cart-btn {
+      background: var(--gold) !important;
+      color: #FFFFFF !important;
+      border-radius: 6px !important;
+      padding: 6px 14px !important;
+    }
+    .cart-count {
+      background: var(--dark) !important;
+      color: #FFFFFF !important;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1C1508 0%, #2E2010 40%, #3D2A10 70%, #1C1508 100%) !important;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 60%, rgba(212,160,23,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow { color: var(--gold-light) !important; opacity: 0.85; }
+    .hero-brand   { color: #FFFFFF !important; }
+    .hero-brand span,
+    .hero-brand em { color: var(--gold-bright) !important; }
+    .hero-premium { color: var(--gold-light) !important; letter-spacing: 4px; }
+    .hero-line    { background: linear-gradient(90deg, transparent, var(--gold), transparent) !important; }
+    .hero-sub     { color: rgba(255,255,255,0.75) !important; }
+
+    /* Hero category buttons */
+    .hero-cat-btn {
+      background: rgba(255,255,255,0.07) !important;
+      border: 1.5px solid rgba(212,160,23,0.45) !important;
+      backdrop-filter: blur(6px) !important;
+      color: #FFFFFF !important;
+    }
+    .hero-cat-btn:hover {
+      background: rgba(212,160,23,0.18) !important;
+      border-color: var(--gold-bright) !important;
+    }
+    .hero-cat-icon { color: var(--gold-bright) !important; }
+    .hero-cat-label { color: #FFFFFF !important; }
+    .hero-cat-sub   { color: rgba(255,255,255,0.6) !important; }
+
+    /* ── PWA Install Bar ── */
+    #pwa-install-bar {
+      background: #FFFFFF !important;
+      border-bottom: 1px solid var(--border) !important;
+      border-top: 1px solid var(--border) !important;
+      box-shadow: var(--shadow-sm) !important;
+    }
+    .pwa-install-sub { color: var(--text-mid) !important; }
+    .pwa-install-btn {
+      background: var(--gold) !important;
+      color: #FFFFFF !important;
+      border: none !important;
+    }
+    .pwa-install-btn:hover { background: var(--gold-dim) !important; }
+    .pwa-dismiss-btn { color: var(--text-dim) !important; }
+
+    /* ── Section header ── */
+    .section-header { background: var(--bg) !important; }
+    .section-title  { color: var(--dark) !important; }
+    .section-line   { background: linear-gradient(90deg, transparent, var(--gold), transparent) !important; }
+    .section-count  { color: var(--text-dim) !important; }
+
+    /* ── Search ── */
+    .search-wrap  { background: var(--bg) !important; }
+    .search-inner {
+      background: #FFFFFF !important;
+      border: 1.5px solid var(--border-strong) !important;
+      box-shadow: var(--shadow-sm) !important;
+    }
+    .search-input {
+      background: transparent !important;
+      color: var(--text) !important;
+    }
+    .search-input::placeholder { color: var(--text-muted) !important; }
+    .search-icon  { color: var(--gold) !important; }
+    .search-clear { color: var(--text-dim) !important; }
+
+    /* ── Filter / Category tabs ── */
+    .filter-wrap { background: var(--bg-soft) !important; border-bottom: 1px solid var(--border) !important; }
+    .cat-tabs    { border-bottom: 1px solid var(--border) !important; }
+    .cat-tab {
+      color: var(--text-mid) !important;
+      border-bottom: 2px solid transparent !important;
+      background: transparent !important;
+    }
+    .cat-tab.active, .cat-tab:hover {
+      color: var(--gold) !important;
+      border-bottom-color: var(--gold) !important;
+    }
+    .gender-tab {
+      background: #FFFFFF !important;
+      color: var(--text-mid) !important;
+      border: 1px solid var(--border) !important;
+    }
+    .gender-tab.active, .gender-tab:hover {
+      background: var(--gold) !important;
+      color: #FFFFFF !important;
+      border-color: var(--gold) !important;
+    }
+    .subcat-pill {
+      background: #FFFFFF !important;
+      color: var(--text-mid) !important;
+      border: 1px solid var(--border) !important;
+    }
+    .subcat-pill.active, .subcat-pill:hover {
+      background: var(--gold-pale) !important;
+      color: var(--gold-dim) !important;
+      border-color: var(--gold) !important;
+    }
+
+    /* ── Product tabs ── */
+    .product-tabs-wrap {
+      background: var(--bg) !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+    .product-tab {
+      color: var(--text-mid) !important;
+      background: transparent !important;
+      border-bottom: 2px solid transparent !important;
+    }
+    .product-tab.active, .product-tab:hover {
+      color: var(--gold) !important;
+      border-bottom-color: var(--gold) !important;
+    }
+    .tab-badge {
+      background: var(--gold) !important;
+      color: #FFFFFF !important;
+    }
+
+    /* ── Skeleton loaders ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%) !important;
+      background-size: 200% 100% !important;
+    }
+
+    /* ── Product cards ── */
+    .product-card {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border) !important;
+      box-shadow: var(--shadow-sm) !important;
+    }
+    .product-card:hover {
+      background: var(--bg-card-hover) !important;
+      border-color: var(--gold) !important;
+      box-shadow: var(--shadow-md) !important;
+      transform: translateY(-2px) !important;
+    }
+    .product-name    { color: var(--dark) !important; }
+    .product-description { color: var(--text-dim) !important; }
+    .product-gender  { color: var(--text-muted) !important; background: var(--surface) !important; }
+    .product-subcat  {
+      color: var(--gold-dim) !important;
+      background: var(--gold-pale) !important;
+      border: 1px solid rgba(184,134,11,0.2) !important;
+    }
+    .price-original  { color: var(--text-muted) !important; text-decoration: line-through; }
+    .price-sale      { color: #B83232 !important; font-weight: 700; }
+    .price-only      { color: var(--dark) !important; font-weight: 700; }
+    .disc-pct        { background: #B83232 !important; color: #FFFFFF !important; }
+
+    /* Product badges */
+    .product-badge   { background: #B83232 !important; color: #FFF !important; }
+    .new-badge       { background: var(--gold) !important; color: #FFF !important; }
+    .cat-badge       { background: var(--dark) !important; color: var(--gold-light) !important; }
+    .out-badge       { background: rgba(0,0,0,0.65) !important; color: #FFF !important; }
+
+    /* Video overlay */
+    .video-play-indicator { background: rgba(28,21,8,0.7) !important; color: #FFFFFF !important; }
+
+    /* Product action buttons */
+    .btn-like {
+      background: #FFFFFF !important;
+      border: 1px solid var(--border-strong) !important;
+      color: var(--text-dim) !important;
+    }
+    .btn-like.liked { border-color: #E05050 !important; }
+    .btn-like:hover { border-color: var(--gold) !important; }
+    .btn-wa-share {
+      background: #FFFFFF !important;
+      border: 1px solid var(--border-strong) !important;
+      color: var(--text-dim) !important;
+    }
+    .btn-wa-share:hover { background: #E8F5E9 !important; color: #25A244 !important; border-color: #25A244 !important; }
+    .btn-add {
+      background: var(--gold) !important;
+      color: #FFFFFF !important;
+      border: none !important;
+      font-weight: 600 !important;
+    }
+    .btn-add:hover:not(:disabled) { background: var(--gold-dim) !important; }
+    .btn-add:disabled { background: var(--surface2) !important; color: var(--text-muted) !important; }
+    .btn-add.added    { background: #25A244 !important; }
+
+    /* ── Modal ── */
+    .modal-overlay { background: rgba(28,21,8,0.75) !important; backdrop-filter: blur(4px) !important; }
+    .modal-box {
+      background: #FFFFFF !important;
+      border: 1px solid var(--border-strong) !important;
+      box-shadow: var(--shadow-lg) !important;
+    }
+    .modal-close {
+      background: var(--surface) !important;
+      color: var(--text-mid) !important;
+      border: 1px solid var(--border) !important;
+    }
+    .modal-close:hover { background: var(--gold-pale) !important; color: var(--gold-dim) !important; }
+    .modal-cat    { color: var(--text-muted) !important; }
+    .modal-name   { color: var(--dark) !important; }
+    .modal-desc   { color: var(--text-dim) !important; }
+
+    /* Modal share buttons */
+    .share-btn { border: 1.5px solid var(--border-strong) !important; background: #FFFFFF !important; }
+    .share-btn.wa   { color: #25A244 !important; border-color: #25A244 !important; }
+    .share-btn.fb   { color: #1877F2 !important; border-color: #1877F2 !important; }
+    .share-btn.copy { color: var(--gold-dim) !important; border-color: var(--gold) !important; }
+    .share-btn:hover { opacity: 0.85 !important; }
+
+    .modal-add-btn {
+      background: var(--gold) !important;
+      color: #FFFFFF !important;
+      border: none !important;
+      font-weight: 700 !important;
+    }
+    .modal-add-btn:hover:not(:disabled) { background: var(--gold-dim) !important; }
+    .modal-add-btn:disabled { background: var(--surface2) !important; color: var(--text-muted) !important; }
+
+    /* ── Back to Top ── */
+    .back-to-top {
+      background: var(--gold) !important;
+      color: #FFFFFF !important;
+      border: 2px solid rgba(255,255,255,0.3) !important;
+      box-shadow: var(--shadow-md) !important;
+    }
+    .back-to-top:hover { background: var(--gold-dim) !important; }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--dark2) !important;
+      color: rgba(255,255,255,0.65) !important;
+      border-top: 2px solid var(--gold) !important;
+    }
+    footer a { color: var(--gold-bright) !important; }
+    footer a:hover { color: var(--gold-light) !important; }
+    .social-link {
+      background: rgba(255,255,255,0.08) !important;
+      border: 1px solid rgba(212,160,23,0.35) !important;
+      color: rgba(255,255,255,0.7) !important;
+    }
+    .social-link:hover {
+      background: var(--gold) !important;
+      color: #FFFFFF !important;
+      border-color: var(--gold) !important;
+    }
+
+    /* ── Empty state ── */
+    .empty-state .icon { color: var(--gold) !important; }
+    .empty-state p     { color: var(--text-dim) !important; }
+
+    /* ── Toast (if any) ── */
+    .toast {
+      background: var(--dark) !important;
+      color: #FFFFFF !important;
+      border-left: 3px solid var(--gold) !important;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-soft); }
+    ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+    /* ── theme-color meta update via JS will handle mobile chrome bar ── */
+  </style>
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#C9A84C" />
+  <meta name="theme-color" content="#B8860B" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Eliitoze Jewelz" />
@@ -16,7 +349,7 @@
 <body>
 
 <!-- ── NOTICE BANNER ── -->
-<div id="notice-banner" style="display:none;padding:10px 20px;text-align:center;font-size:12px;letter-spacing:1.5px;color:#fff;font-family:inherit;"></div>
+<div id="notice-banner" style="display:none;padding:10px 20px;text-align:center;font-size:12px;letter-spacing:1.5px;color:#1a1208;font-family:inherit;font-weight:600;border-bottom:1px solid rgba(180,140,60,0.3);"></div>
 
 <!-- ── HEADER ── -->
 <header class="site-header">
