@@ -444,12 +444,12 @@
 <!-- ── PRODUCT TABS (New Arrivals / All) ── -->
 <div class="product-tabs-wrap" id="product-tabs-wrap" style="display:none">
   <div class="product-tabs">
-    <button class="product-tab active" id="tab-new" onclick="switchProductTab('new')">
+    <button class="product-tab active" id="tab-all" onclick="switchProductTab('all')">
+      💎 All Products
+    </button>
+    <button class="product-tab" id="tab-new" onclick="switchProductTab('new')">
       ✨ New Arrivals
       <span class="tab-badge" id="new-badge">0</span>
-    </button>
-    <button class="product-tab" id="tab-all" onclick="switchProductTab('all')">
-      💎 All Products
     </button>
   </div>
 </div>
@@ -646,7 +646,7 @@ window.switchProductTab = function(tab) {
   let activeCat     = 'all';
   let activeGender  = 'all';
   let activeSubcat  = 'all';
-  let activeTab     = 'new';
+  let activeTab     = 'all';
   let searchQuery   = '';
   let likesData     = {};
   let likedSet      = new Set(JSON.parse(localStorage.getItem('eliitoze_liked') || '[]'));
@@ -694,6 +694,9 @@ window.switchProductTab = function(tab) {
     activeTab = 'all-tab';
     switchProductTab('all');
   }
+
+  // Default to All Products tab on load
+  switchProductTab('all');
 
   // ── Search
   const searchInput = document.getElementById('search-input');
