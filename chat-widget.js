@@ -335,23 +335,61 @@
   let isTyping  = false;
   let history   = [];
   let hasOpened = false;
+  let userLang  = null; // 'gu' | 'en' — set after language selection
 
   const messagesEl = document.getElementById('ej-messages');
   const inputEl    = document.getElementById('ej-input');
   const sendBtn    = document.getElementById('ej-send');
   const notifDot   = document.getElementById('ej-notif');
 
-  // ── Welcome message ──
+  // ── Welcome message — language selection ──
   function showWelcome() {
-    addBotMessage('નમસ્તે! 🙏 Eliitoze Jewelz ma swagat chhe!\n\nHun tamne jewellery dhundhvama, product ni mahiti aapvama, ne order karvama madad kari shakis.\n\nShu joiye chhe aapne?');
-    setTimeout(() => {
-      addQuickReplies([
-        '925 Silver jwellery',
-        'Imitation jwellery',
-        'Delivery info',
-        'Price range jova'
-      ]);
-    }, 400);
+    addBotMessage('💎 ELIITOZE JEWELZ\n\nPlease select your language · ભાષા પસંદ કરો');
+    setTimeout(() => addLangSelect(), 300);
+  }
+
+  function addLangSelect() {
+    const wrap = document.createElement('div');
+    wrap.className = 'ej-quick-replies';
+    wrap.id = 'ej-lang-select';
+
+    const opts = [
+      { label: '🇮🇳 ગુજરાતી', lang: 'gu' },
+      { label: '🇬🇧 English',  lang: 'en' },
+    ];
+
+    opts.forEach(({ label, lang }) => {
+      const btn = document.createElement('button');
+      btn.className = 'ej-qr-btn ej-lang-btn';
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        wrap.remove();
+        userLang = lang;
+        if (lang === 'gu') {
+          addBotMessage('નમસ્તે! 🙏 Eliitoze Jewelz ma aapnu swagat chhe!\n\nHun tamne jewellery dhundhvama ane order karvama madad karishH. Shu joiye chhe?');
+          setTimeout(() => addQuickReplies([
+            '925 Silver jwellery',
+            'Imitation jwellery',
+            'Delivery ni mahiti',
+            'Price range jova',
+          ]), 350);
+          inputEl.placeholder = 'Jewellery vishe puchho...';
+        } else {
+          addBotMessage('Hello! 👋 Welcome to Eliitoze Jewelz!\n\nI can help you find jewellery, check prices, and place orders. What are you looking for?');
+          setTimeout(() => addQuickReplies([
+            '925 Silver jewellery',
+            'Imitation jewellery',
+            'Delivery info',
+            'Browse by price',
+          ]), 350);
+          inputEl.placeholder = 'Ask about jewellery...';
+        }
+      });
+      wrap.appendChild(btn);
+    });
+
+    messagesEl.appendChild(wrap);
+    scrollBottom();
   }
 
   // ── Toggle window ──
@@ -466,7 +504,13 @@
     if (!text || isTyping) return;
 
     addUserMessage(text);
-    history.push({ role: 'user', content: text });
+    // Inject language hint so AI replies in selected language
+    const langHint = userLang === 'gu'
+      ? '[REPLY IN GUJARATI ONLY] '
+      : userLang === 'en'
+        ? '[REPLY IN ENGLISH ONLY] '
+        : '';
+    history.push({ role: 'user', content: langHint + text });
 
     inputEl.value = '';
     inputEl.style.height = 'auto';
@@ -479,7 +523,7 @@
       const res = await fetch(`${WORKER_URL}/ai-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: history.slice(-8) }),
+        body: JSON.stringify({ message: (userLang === 'gu' ? '[REPLY IN GUJARATI ONLY] ' : userLang === 'en' ? '[REPLY IN ENGLISH ONLY] ' : '') + text, history: history.slice(-8) }),
       });
 
       removeTypingIndicator();
