@@ -3,7 +3,7 @@
 //  Handles: caching, push notifications, notification clicks
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE     = 'eliitoze-v5';
+const CACHE     = 'eliitoze-v4';
 // Updated: custom domain serves from root "/", not "/website/"
 const ICON_PATH = '/icon-192.png';
 
