@@ -971,7 +971,7 @@ window.switchProductTab = function(tab) {
 // ── Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/website/sw.js', { scope: '/website/' }).catch(()=>{});
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(()=>{});
   });
 }
 
